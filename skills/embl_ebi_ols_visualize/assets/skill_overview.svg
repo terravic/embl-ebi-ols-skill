@@ -1,0 +1,361 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 860" width="1600" height="860" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <!-- Subtle card shadow -->
+    <filter id="card-shadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.06"/>
+    </filter>
+    <filter id="ui-shadow" x="-4%" y="-4%" width="108%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.09"/>
+    </filter>
+
+    <!-- Connector Arrow Markers -->
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#0284C7"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#D97706"/>
+    </marker>
+
+    <!-- Subtle Dot Grid for Graph Preview -->
+    <pattern id="stage-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#CBD5E1"/>
+    </pattern>
+  </defs>
+
+  <!-- Pure Clean Background -->
+  <rect width="1600" height="860" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="1560" height="820" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- Top Header Banner -->
+  <text x="56" y="68" font-size="24" font-weight="700" fill="#0F172A" letter-spacing="-0.3">EMBL-EBI Ontology Lookup Service Skill (embl-ebi-ols-visualize)</text>
+  <text x="56" y="94" font-size="14" font-weight="400" fill="#475569">End-to-end architecture: OLS4 REST API ingestion, multi-relational DAG normalization, and interactive HTML5 dashboard synthesis</text>
+  <line x1="56" y1="114" x2="1544" y2="114" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- ===================================================================== -->
+  <!-- COLUMN 1: DATA INPUTS (x=56, width=320)                               -->
+  <!-- ===================================================================== -->
+  <text x="56" y="148" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.2">1. DATA INPUTS</text>
+
+  <!-- Box 1A: User / Agent Request -->
+  <g filter="url(#card-shadow)">
+    <rect x="56" y="166" width="320" height="190" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <rect x="56" y="166" width="320" height="6" rx="3" fill="#0284C7"/>
+    <text x="76" y="200" font-size="15" font-weight="700" fill="#0F172A">User Prompt or CLI Parameters</text>
+    <text x="76" y="222" font-size="12" fill="#475569">Natural language query or explicit identifiers</text>
+
+    <rect x="76" y="238" width="280" height="30" rx="5" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="88" y="257" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#0F172A">--obo_id "GO:0005634"</text>
+    <text x="276" y="257" font-size="11" fill="#64748B">(Nucleus)</text>
+
+    <rect x="76" y="276" width="280" height="30" rx="5" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="88" y="295" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#0F172A">--obo_id "DOID:9351"</text>
+    <text x="276" y="295" font-size="11" fill="#64748B">(Diabetes)</text>
+
+    <rect x="76" y="314" width="280" height="30" rx="5" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="88" y="333" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="600" fill="#0F172A">--query "apoptosis" --ontology go</text>
+  </g>
+
+  <!-- Arrow between 1A and 1B -->
+  <line x1="216" y1="356" x2="216" y2="404" stroke="#475569" stroke-width="2" marker-end="url(#arrow-slate)"/>
+  <text x="228" y="385" font-size="11" font-weight="600" fill="#475569">HTTPS Request (5.0 QPS limit)</text>
+
+  <!-- Box 1B: EMBL-EBI OLS4 REST API -->
+  <g filter="url(#card-shadow)">
+    <rect x="56" y="412" width="320" height="224" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <rect x="56" y="412" width="320" height="6" rx="3" fill="#0F172A"/>
+    <text x="76" y="446" font-size="15" font-weight="700" fill="#0F172A">EMBL-EBI OLS4 REST API</text>
+    <text x="76" y="466" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" fill="#0284C7">https://www.ebi.ac.uk/ols4/api</text>
+
+    <line x1="76" y1="480" x2="356" y2="480" stroke="#E2E8F0" stroke-width="1"/>
+
+    <text x="76" y="502" font-size="12" font-weight="600" fill="#334155">Endpoints Queried:</text>
+    <text x="76" y="522" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#475569">GET /ontologies/{id}/terms/{iri}</text>
+    <text x="76" y="540" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#475569">GET /terms/{iri}/hierarchicalParents</text>
+    <text x="76" y="558" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#475569">GET /terms/{iri}/hierarchicalChildren</text>
+    <text x="76" y="576" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#475569">GET /select, /search, /v2/stats</text>
+
+    <rect x="76" y="592" width="280" height="28" rx="4" fill="#F0F9FF" stroke="#BAE6FD" stroke-width="1"/>
+    <text x="88" y="610" font-size="11.5" font-weight="600" fill="#0369A1">Raw Payload: HAL+JSON (_embedded.terms)</text>
+  </g>
+
+  <!-- Box 1C: Offline Mock Fallback -->
+  <g filter="url(#card-shadow)">
+    <rect x="56" y="658" width="320" height="78" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="76" y="686" font-size="13" font-weight="700" fill="#334155">Offline Mock Mode (--mock)</text>
+    <text x="76" y="706" font-size="11.5" fill="#475569">Loads local curated fixtures from</text>
+    <text x="76" y="723" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="600" fill="#0D9488">sample_data/*.json (zero network I/O)</text>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- CONNECTORS: COLUMN 1 -> COLUMN 2                                      -->
+  <!-- ===================================================================== -->
+  <path d="M 376 524 L 412 524 L 412 256 L 444 256" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow-slate)"/>
+  <path d="M 376 256 L 444 256" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow-slate)"/>
+
+  <!-- ===================================================================== -->
+  <!-- COLUMN 2: SKILL PROCESSING PIPELINE (x=452, width=350)                -->
+  <!-- ===================================================================== -->
+  <text x="452" y="148" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.2">2. SKILL PROCESSING PIPELINE (run_pipeline.py)</text>
+
+  <!-- Stage 2A: Protocol & Ingestion Layer -->
+  <g filter="url(#card-shadow)">
+    <rect x="452" y="166" width="350" height="170" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <rect x="452" y="166" width="6" height="170" rx="3" fill="#0284C7"/>
+    <text x="474" y="196" font-size="14" font-weight="700" fill="#0F172A">Step 1: Ingestion &amp; IRI Encoding</text>
+    <text x="474" y="216" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#0284C7">ols_utils.py | get_term.py | search_ols.py</text>
+
+    <text x="474" y="242" font-size="12" fill="#334155">- Maps OBO ID to canonical PURL IRI</text>
+    <text x="474" y="262" font-size="12" fill="#334155">- Double URL-encodes IRI (%252F) for Spring MVC</text>
+    <text x="474" y="282" font-size="12" fill="#334155">- Paginates HAL+JSON relations &amp; ontologies</text>
+
+    <rect x="474" y="296" width="308" height="26" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="484" y="313" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0F172A">Output: term.json, ontology.json, stats.json</text>
+  </g>
+
+  <!-- Arrow 2A -> 2B -->
+  <line x1="627" y1="336" x2="627" y2="372" stroke="#475569" stroke-width="2" marker-end="url(#arrow-slate)"/>
+
+  <!-- Stage 2B: Graph & Hierarchy Normalizer -->
+  <g filter="url(#card-shadow)">
+    <rect x="452" y="380" width="350" height="184" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <rect x="452" y="380" width="6" height="184" rx="3" fill="#0D9488"/>
+    <text x="474" y="410" font-size="14" font-weight="700" fill="#0F172A">Step 2: Hierarchy &amp; DAG Normalizer</text>
+    <text x="474" y="430" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#0D9488">visualize_hierarchy.py | visualize_ontology.py</text>
+
+    <text x="474" y="456" font-size="12" fill="#334155">- Deduplicates polyhierarchical DAG nodes</text>
+    <text x="474" y="476" font-size="12" fill="#334155">- Extracts typed edges (subClassOf, part_of)</text>
+    <text x="474" y="496" font-size="12" fill="#334155">- Computes shortest ancestor lineage to root</text>
+    <text x="474" y="516" font-size="12" fill="#334155">- Normalizes scoped synonyms &amp; clinical xrefs</text>
+
+    <rect x="474" y="526" width="308" height="26" rx="4" fill="#F0FDFA" stroke="#99F6E4" stroke-width="1"/>
+    <text x="484" y="543" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#0F766E">Output: hierarchy_graph.json (DAG + Tree)</text>
+  </g>
+
+  <!-- Arrow 2B -> 2C -->
+  <line x1="627" y1="564" x2="627" y2="600" stroke="#475569" stroke-width="2" marker-end="url(#arrow-slate)"/>
+
+  <!-- Stage 2C: Standalone Web Dashboard Generator -->
+  <g filter="url(#card-shadow)">
+    <rect x="452" y="608" width="350" height="128" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <rect x="452" y="608" width="6" height="128" rx="3" fill="#D97706"/>
+    <text x="474" y="638" font-size="14" font-weight="700" fill="#0F172A">Step 3: Web Dashboard Synthesis</text>
+    <text x="474" y="658" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" fill="#B45309">generate_dashboard.py</text>
+
+    <text x="474" y="682" font-size="12" fill="#334155">- Compiles self-contained HTML5 dashboard</text>
+    <text x="474" y="700" font-size="12" fill="#334155">- Embeds 3D/2D graph models &amp; pipeline trace</text>
+
+    <rect x="474" y="706" width="308" height="22" rx="4" fill="#FFFBEB" stroke="#FDE68A" stroke-width="1"/>
+    <text x="484" y="721" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#92400E">Output: dashboard.html (Standalone HTML5)</text>
+  </g>
+
+  <!-- ===================================================================== -->
+  <!-- CONNECTOR: COLUMN 2 -> COLUMN 3                                       -->
+  <!-- ===================================================================== -->
+  <path d="M 802 472 L 850 472" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow-slate)"/>
+  <path d="M 802 672 L 826 672 L 826 472 L 850 472" fill="none" stroke="#475569" stroke-width="2"/>
+
+  <!-- ===================================================================== -->
+  <!-- COLUMN 3: OUTPUTS & INTERACTIVE WEB DASHBOARD (x=860, w=684)          -->
+  <!-- ===================================================================== -->
+  <text x="860" y="148" font-size="12" font-weight="700" fill="#475569" letter-spacing="1.2">3. INTERACTIVE WEB DASHBOARD &amp; DATA OUTPUTS</text>
+
+  <!-- UI Dashboard Window Mockup -->
+  <g filter="url(#ui-shadow)">
+    <rect x="860" y="166" width="684" height="504" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+
+    <!-- Top Application Bar -->
+    <rect x="860" y="166" width="684" height="44" rx="10" fill="#0F172A"/>
+    <rect x="860" y="196" width="684" height="14" fill="#0F172A"/>
+    <text x="880" y="193" font-size="13" font-weight="700" fill="#FFFFFF">EMBL-EBI OLS4 Explorer</text>
+
+    <!-- Dataset Selector Pill in App Bar -->
+    <rect x="1050" y="176" width="186" height="24" rx="4" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+    <text x="1062" y="192" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#38BDF8">GO:0005634 - nucleus</text>
+
+    <!-- Load JSON Button -->
+    <rect x="1244" y="176" width="74" height="24" rx="4" fill="#1E293B" stroke="#475569" stroke-width="1"/>
+    <text x="1256" y="192" font-size="11" font-weight="600" fill="#E2E8F0">Load JSON</text>
+
+    <!-- Root Path Toggle -->
+    <rect x="1326" y="176" width="72" height="24" rx="4" fill="#0284C7"/>
+    <text x="1337" y="192" font-size="11" font-weight="600" fill="#FFFFFF">Root Path</text>
+
+    <!-- Clean Icon-Only Theme Switcher (Sun & Moon Vector Shapes) -->
+    <rect x="1480" y="176" width="50" height="24" rx="4" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+    <rect x="1482" y="178" width="22" height="20" rx="3" fill="#0284C7"/>
+    <circle cx="1493" cy="188" r="4.5" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+    <path d="M 1519 183 A 5 5 0 1 0 1524 191 A 4 4 0 1 1 1519 183 Z" fill="#94A3B8"/>
+
+    <!-- Navigation Tabs Bar -->
+    <rect x="861" y="210" width="682" height="34" fill="#F8FAFC"/>
+    <line x1="861" y1="244" x2="1543" y2="244" stroke="#E2E8F0" stroke-width="1"/>
+
+    <!-- Active Tab: 3D Network -->
+    <rect x="874" y="215" width="88" height="29" rx="4" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+    <line x1="875" y1="244" x2="961" y2="244" stroke="#0284C7" stroke-width="2.5"/>
+    <text x="888" y="233" font-size="11.5" font-weight="700" fill="#0284C7">3D Network</text>
+
+    <text x="978" y="233" font-size="11.5" font-weight="600" fill="#475569">2D Hierarchy</text>
+    <text x="1068" y="233" font-size="11.5" font-weight="600" fill="#475569">Lineage Tree</text>
+    <text x="1158" y="233" font-size="11.5" font-weight="600" fill="#475569">Data Pipeline</text>
+    <text x="1250" y="233" font-size="11.5" font-weight="600" fill="#475569">Corpus Metrics</text>
+
+    <!-- Pipeline Trace Bar -->
+    <rect x="861" y="245" width="682" height="28" fill="#F1F5F9"/>
+    <line x1="861" y1="273" x2="1543" y2="273" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="876" y="263" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#334155">PIPELINE TRACE:</text>
+    <text x="982" y="263" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#0369A1">Input: GO:0005634</text>
+    <text x="1102" y="263" font-size="10.5" fill="#64748B">-&gt;</text>
+    <text x="1122" y="263" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#0F766E">OLS4 HAL+JSON (8 records)</text>
+    <text x="1296" y="263" font-size="10.5" fill="#64748B">-&gt;</text>
+    <text x="1316" y="263" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="600" fill="#0F172A">Normalized DAG (9 nodes, 8 edges)</text>
+
+    <!-- Main Split View: Left Graph Viewport (width=440) + Right Term Inspector (width=242) -->
+    <rect x="861" y="274" width="440" height="395" fill="url(#stage-grid)"/>
+    <line x1="1301" y1="274" x2="1301" y2="669" stroke="#CBD5E1" stroke-width="1.5"/>
+
+    <!-- Graph Viewport Sub-header Overlay -->
+    <rect x="874" y="284" width="110" height="22" rx="4" fill="#FFFFFF" fill-opacity="0.92" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="882" y="299" font-size="10" font-weight="600" fill="#334155">Multi-Parent DAG</text>
+
+    <!-- Ontology Graph Edges inside Viewport -->
+    <!-- Root -> Parents (subClassOf: solid blue) -->
+    <line x1="1080" y1="334" x2="978" y2="392" stroke="#0284C7" stroke-width="2" marker-end="url(#arrow-blue)"/>
+    <line x1="1080" y1="334" x2="1186" y2="392" stroke="#0284C7" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+    <!-- Parent 1 -> Focal Node (subClassOf: solid blue) -->
+    <line x1="978" y1="428" x2="1062" y2="478" stroke="#0284C7" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
+    <rect x="974" y="445" width="64" height="16" rx="3" fill="#FFFFFF" stroke="#BAE6FD" stroke-width="1"/>
+    <text x="980" y="456" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#0284C7">subClassOf</text>
+
+    <!-- Parent 2 -> Focal Node (part_of: dashed amber) -->
+    <line x1="1186" y1="428" x2="1102" y2="478" stroke="#D97706" stroke-width="2.2" stroke-dasharray="5,3" marker-end="url(#arrow-amber)"/>
+    <rect x="1132" y="445" width="48" height="16" rx="3" fill="#FFFFFF" stroke="#FDE68A" stroke-width="1"/>
+    <text x="1138" y="456" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#B45309">part_of</text>
+
+    <!-- Focal Node -> Children -->
+    <!-- Child 1: nuclear envelope (part_of) -->
+    <line x1="1055" y1="520" x2="948" y2="578" stroke="#D97706" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrow-amber)"/>
+    <!-- Child 2: nucleoplasm (part_of) -->
+    <line x1="1080" y1="520" x2="1080" y2="578" stroke="#D97706" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrow-amber)"/>
+    <!-- Child 3: nucleolus (part_of) -->
+    <line x1="1105" y1="520" x2="1212" y2="578" stroke="#D97706" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrow-amber)"/>
+
+    <!-- Ontology Graph Nodes -->
+    <!-- Root Node -->
+    <rect x="996" y="302" width="168" height="32" rx="16" fill="#F8FAFC" stroke="#475569" stroke-width="1.5"/>
+    <text x="1080" y="316" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0F172A">cellular_component</text>
+    <text x="1080" y="328" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#475569">GO:0005575 (Root)</text>
+
+    <!-- Parent 1: membrane-bounded organelle -->
+    <rect x="882" y="394" width="192" height="34" rx="6" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.5"/>
+    <text x="978" y="409" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0F172A">membrane-bounded organelle</text>
+    <text x="978" y="422" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#0369A1">GO:0043231</text>
+
+    <!-- Parent 2: intracellular anatomical structure -->
+    <rect x="1090" y="394" width="196" height="34" rx="6" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+    <text x="1188" y="409" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0F172A">intracellular structure</text>
+    <text x="1188" y="422" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#B45309">GO:0005622</text>
+
+    <!-- Focal Node: nucleus (GO:0005634) -->
+    <rect x="1008" y="480" width="144" height="40" rx="20" fill="#0284C7" stroke="#0F172A" stroke-width="2"/>
+    <text x="1080" y="498" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">nucleus</text>
+    <text x="1080" y="512" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" font-weight="600" fill="#E0F2FE">GO:0005634 (Focal)</text>
+
+    <!-- Child 1: nuclear envelope -->
+    <rect x="876" y="580" width="128" height="34" rx="6" fill="#FFFFFF" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="940" y="595" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0F172A">nuclear envelope</text>
+    <text x="940" y="608" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#0F766E">GO:0005635</text>
+
+    <!-- Child 2: nucleoplasm -->
+    <rect x="1016" y="580" width="128" height="34" rx="6" fill="#FFFFFF" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="1080" y="595" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0F172A">nucleoplasm</text>
+    <text x="1080" y="608" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#0F766E">GO:0005654</text>
+
+    <!-- Child 3: nucleolus -->
+    <rect x="1156" y="580" width="128" height="34" rx="6" fill="#FFFFFF" stroke="#0D9488" stroke-width="1.5"/>
+    <text x="1220" y="595" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0F172A">nucleolus</text>
+    <text x="1220" y="608" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#0F766E">GO:0005730</text>
+
+    <!-- Legend Bar at Bottom of Graph View -->
+    <rect x="874" y="632" width="414" height="26" rx="4" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+    <line x1="886" y1="645" x2="912" y2="645" stroke="#0284C7" stroke-width="2.5"/>
+    <text x="918" y="649" font-size="10.5" font-weight="600" fill="#334155">subClassOf (is-a)</text>
+
+    <line x1="1024" y1="645" x2="1050" y2="645" stroke="#D97706" stroke-width="2.2" stroke-dasharray="4,2"/>
+    <text x="1056" y="649" font-size="10.5" font-weight="600" fill="#334155">part_of</text>
+
+    <circle cx="1126" cy="645" r="5" fill="#0284C7"/>
+    <text x="1136" y="649" font-size="10.5" fill="#475569">Focal</text>
+
+    <circle cx="1182" cy="645" r="5" fill="#0D9488"/>
+    <text x="1192" y="649" font-size="10.5" fill="#475569">Child Subtypes</text>
+
+    <!-- Right-Hand Side Drawer: Term Inspector -->
+    <rect x="1302" y="274" width="241" height="395" fill="#FFFFFF"/>
+    <rect x="1302" y="274" width="241" height="32" fill="#F8FAFC"/>
+    <line x1="1302" y1="306" x2="1543" y2="306" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="1316" y="295" font-size="11.5" font-weight="700" fill="#0F172A">TERM INSPECTOR</text>
+
+    <rect x="1316" y="318" width="84" height="20" rx="4" fill="#E0F2FE"/>
+    <text x="1324" y="332" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" font-weight="700" fill="#0369A1">GO:0005634</text>
+    <rect x="1406" y="318" width="56" height="20" rx="4" fill="#F1F5F9"/>
+    <text x="1414" y="332" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" font-weight="600" fill="#475569">ONT:GO</text>
+
+    <text x="1316" y="358" font-size="14" font-weight="700" fill="#0F172A">nucleus</text>
+
+    <text x="1316" y="380" font-size="10.5" font-weight="700" fill="#475569">DEFINITION</text>
+    <text x="1316" y="396" font-size="10.5" fill="#334155">A membrane-bounded organelle of</text>
+    <text x="1316" y="410" font-size="10.5" fill="#334155">eukaryotic cells that contains the</text>
+    <text x="1316" y="424" font-size="10.5" fill="#334155">chromosomes and nuclear matrix.</text>
+
+    <line x1="1316" y1="438" x2="1528" y2="438" stroke="#E2E8F0" stroke-width="1"/>
+
+    <text x="1316" y="456" font-size="10.5" font-weight="700" fill="#475569">SCOPED SYNONYMS</text>
+    <rect x="1316" y="464" width="212" height="22" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="1324" y="479" font-size="10.5" fill="#0F172A">cell nucleus</text>
+    <text x="1482" y="479" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#0D9488">EXACT</text>
+
+    <rect x="1316" y="490" width="212" height="22" rx="4" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="1324" y="505" font-size="10.5" fill="#0F172A">horsetail nucleus</text>
+    <text x="1474" y="505" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#D97706">NARROW</text>
+
+    <line x1="1316" y1="524" x2="1528" y2="524" stroke="#E2E8F0" stroke-width="1"/>
+
+    <text x="1316" y="542" font-size="10.5" font-weight="700" fill="#475569">DATABASE XREFS</text>
+    <text x="1316" y="558" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#0284C7">Wikipedia:Cell_nucleus</text>
+    <text x="1316" y="574" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#0284C7">NIF_Subcellular:sao1702920020</text>
+
+    <line x1="1316" y1="588" x2="1528" y2="588" stroke="#E2E8F0" stroke-width="1"/>
+
+    <text x="1316" y="606" font-size="10.5" font-weight="700" fill="#475569">SHORTEST ROOT LINEAGE</text>
+    <text x="1316" y="622" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#334155">GO:0005575 -&gt; GO:0110165 -&gt;</text>
+    <text x="1316" y="636" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" fill="#334155">GO:0043226 -&gt; GO:0043231 -&gt;</text>
+    <text x="1316" y="650" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" font-weight="700" fill="#0284C7">GO:0005634 (Depth: 4)</text>
+  </g>
+
+  <!-- Bottom Row of Column 3: Structured Output Files -->
+  <g filter="url(#card-shadow)">
+    <rect x="860" y="684" width="218" height="52" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <text x="876" y="705" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="700" fill="#0284C7">term.json / stats.json</text>
+    <text x="876" y="723" font-size="11" fill="#475569">Raw OLS4 API HAL+JSON payloads</text>
+
+    <rect x="1093" y="684" width="218" height="52" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <text x="1109" y="705" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="700" fill="#0D9488">hierarchy_graph.json</text>
+    <text x="1109" y="723" font-size="11" fill="#475569">Normalized DAG, tree &amp; trace summary</text>
+
+    <rect x="1326" y="684" width="218" height="52" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+    <text x="1342" y="705" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" font-weight="700" fill="#D97706">dashboard.html</text>
+    <text x="1342" y="723" font-size="11" fill="#475569">Self-contained HTML5 UI dashboard</text>
+  </g>
+
+  <!-- Bottom Summary Strip -->
+  <rect x="56" y="758" width="1488" height="56" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="76" y="782" font-size="12" font-weight="700" fill="#0F172A">Key Capabilities:</text>
+  <text x="190" y="782" font-size="12" fill="#334155">Zero mandatory third-party Python dependencies (standard library runtime)  |  Automatic double-URL IRI encoding (%252F)  |  5.0 QPS rate limiting with exponential backoff</text>
+  <text x="76" y="801" font-size="12" font-weight="700" fill="#0F172A">Dashboard Views:</text>
+  <text x="190" y="801" font-size="12" fill="#334155">3D Network (spatial multi-parent DAG)  |  2D Hierarchy (layered D3 DAG)  |  Lineage Tree (collapsible root-to-leaf)  |  Data Pipeline (Input vs. Processed JSON)  |  Corpus Metrics</text>
+</svg>

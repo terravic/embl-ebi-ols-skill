@@ -1,0 +1,467 @@
+{
+  "iri": "http://purl.obolibrary.org/obo/DOID_9351",
+  "lang": "en",
+  "description": [
+    "A glucose metabolism disease that is characterized by chronic hyperglycaemia with disturbances of carbohydrate, fat and protein metabolism resulting from defects in insulin secretion, insulin action, or both."
+  ],
+  "synonyms": [
+    "diabetes",
+    "diabetes mellitus (disorder)",
+    "DM"
+  ],
+  "annotation": {
+    "comment": [
+      "Xref MGI. OMIM mapping confirmed by DO."
+    ],
+    "has_obo_namespace": [
+      "disease_ontology"
+    ],
+    "id": [
+      "DOID:9351"
+    ]
+  },
+  "label": "diabetes mellitus",
+  "ontology_name": "doid",
+  "ontology_prefix": "DOID",
+  "ontology_iri": "http://purl.obolibrary.org/obo/doid.owl",
+  "is_obsolete": false,
+  "term_replaced_by": null,
+  "is_defining_ontology": true,
+  "has_children": true,
+  "is_root": false,
+  "short_form": "DOID_9351",
+  "obo_id": "DOID:9351",
+  "in_subset": [
+    "DO_CFDE_slim",
+    "DO_RAD_slim",
+    "NCIthesaurus"
+  ],
+  "obo_xref": [
+    {
+      "database": "ICD10CM",
+      "id": "E08-E13",
+      "description": "Diabetes mellitus",
+      "url": null
+    },
+    {
+      "database": "MeSH",
+      "id": "D003920",
+      "description": "Diabetes Mellitus",
+      "url": "https://meshb.nlm.nih.gov/record/ui?ui=D003920"
+    },
+    {
+      "database": "OMIM",
+      "id": "222100",
+      "description": "Diabetes Mellitus, Insulin-Dependent",
+      "url": "https://www.omim.org/entry/222100"
+    },
+    {
+      "database": "UMLS_CUI",
+      "id": "C0011849",
+      "description": "Diabetes Mellitus",
+      "url": null
+    },
+    {
+      "database": "MedDRA",
+      "id": "10012601",
+      "description": "Diabetes mellitus",
+      "url": null
+    }
+  ],
+  "obo_synonym": [
+    {
+      "name": "diabetes",
+      "scope": "EXACT",
+      "type": null,
+      "xrefs": []
+    },
+    {
+      "name": "diabetes mellitus syndrome",
+      "scope": "BROAD",
+      "type": null,
+      "xrefs": []
+    },
+    {
+      "name": "DM - diabetes mellitus",
+      "scope": "RELATED",
+      "type": null,
+      "xrefs": []
+    }
+  ],
+  "relations": {
+    "parents": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4194",
+        "obo_id": "DOID:4194",
+        "short_form": "DOID_4194",
+        "label": "glucose metabolism disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A carbohydrate metabolism disease that is characterized by abnormal glucose homeostasis."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_28",
+        "obo_id": "DOID:28",
+        "short_form": "DOID_28",
+        "label": "endocrine system disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A disease of anatomical entity that is located_in endocrine system."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "children": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9744",
+        "obo_id": "DOID:9744",
+        "short_form": "DOID_9744",
+        "label": "type 1 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A diabetes mellitus that results from autoimmune destruction of insulin-producing beta cells of the pancreas."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9352",
+        "obo_id": "DOID:9352",
+        "short_form": "DOID_9352",
+        "label": "type 2 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A diabetes mellitus that is characterized by high blood glucose in the context of insulin resistance and relative insulin deficiency."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_11714",
+        "obo_id": "DOID:11714",
+        "short_form": "DOID_11714",
+        "label": "gestational diabetes",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A diabetes mellitus in which women without previously diagnosed diabetes exhibit high blood glucose levels during pregnancy."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_11716",
+        "obo_id": "DOID:11716",
+        "short_form": "DOID_11716",
+        "label": "prediabetes syndrome",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A diabetes mellitus that involves impaired fasting glucose or impaired glucose tolerance."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "ancestors": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4194",
+        "obo_id": "DOID:4194",
+        "short_form": "DOID_4194",
+        "label": "glucose metabolism disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4195",
+        "obo_id": "DOID:4195",
+        "short_form": "DOID_4195",
+        "label": "carbohydrate metabolism disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_0014667",
+        "obo_id": "DOID:0014667",
+        "short_form": "DOID_0014667",
+        "label": "disease of metabolism",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_28",
+        "obo_id": "DOID:28",
+        "short_form": "DOID_28",
+        "label": "endocrine system disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_7",
+        "obo_id": "DOID:7",
+        "short_form": "DOID_7",
+        "label": "disease of anatomical entity",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4",
+        "obo_id": "DOID:4",
+        "short_form": "DOID_4",
+        "label": "disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": true
+      }
+    ],
+    "descendants": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9744",
+        "obo_id": "DOID:9744",
+        "short_form": "DOID_9744",
+        "label": "type 1 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9352",
+        "obo_id": "DOID:9352",
+        "short_form": "DOID_9352",
+        "label": "type 2 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_11714",
+        "obo_id": "DOID:11714",
+        "short_form": "DOID_11714",
+        "label": "gestational diabetes",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_11716",
+        "obo_id": "DOID:11716",
+        "short_form": "DOID_11716",
+        "label": "prediabetes syndrome",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      }
+    ],
+    "hierarchicalParents": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4194",
+        "obo_id": "DOID:4194",
+        "short_form": "DOID_4194",
+        "label": "glucose metabolism disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_28",
+        "obo_id": "DOID:28",
+        "short_form": "DOID_28",
+        "label": "endocrine system disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "hierarchicalChildren": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9744",
+        "obo_id": "DOID:9744",
+        "short_form": "DOID_9744",
+        "label": "type 1 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9352",
+        "obo_id": "DOID:9352",
+        "short_form": "DOID_9352",
+        "label": "type 2 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_11714",
+        "obo_id": "DOID:11714",
+        "short_form": "DOID_11714",
+        "label": "gestational diabetes",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_11716",
+        "obo_id": "DOID:11716",
+        "short_form": "DOID_11716",
+        "label": "prediabetes syndrome",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "hierarchicalAncestors": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4194",
+        "obo_id": "DOID:4194",
+        "short_form": "DOID_4194",
+        "label": "glucose metabolism disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4195",
+        "obo_id": "DOID:4195",
+        "short_form": "DOID_4195",
+        "label": "carbohydrate metabolism disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_0014667",
+        "obo_id": "DOID:0014667",
+        "short_form": "DOID_0014667",
+        "label": "disease of metabolism",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_28",
+        "obo_id": "DOID:28",
+        "short_form": "DOID_28",
+        "label": "endocrine system disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_7",
+        "obo_id": "DOID:7",
+        "short_form": "DOID_7",
+        "label": "disease of anatomical entity",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_4",
+        "obo_id": "DOID:4",
+        "short_form": "DOID_4",
+        "label": "disease",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": true
+      }
+    ],
+    "hierarchicalDescendants": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9744",
+        "obo_id": "DOID:9744",
+        "short_form": "DOID_9744",
+        "label": "type 1 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/DOID_9352",
+        "obo_id": "DOID:9352",
+        "short_form": "DOID_9352",
+        "label": "type 2 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "is_obsolete": false,
+        "is_root": false
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {"iri": "http://purl.obolibrary.org/obo/DOID_4", "obo_id": "DOID:4", "label": "disease", "is_root": true},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_0014667", "obo_id": "DOID:0014667", "label": "disease of metabolism"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_7", "obo_id": "DOID:7", "label": "disease of anatomical entity"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_4195", "obo_id": "DOID:4195", "label": "carbohydrate metabolism disease"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_28", "obo_id": "DOID:28", "label": "endocrine system disease"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_4194", "obo_id": "DOID:4194", "label": "glucose metabolism disease"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_9351", "obo_id": "DOID:9351", "label": "diabetes mellitus"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_9744", "obo_id": "DOID:9744", "label": "type 1 diabetes mellitus"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_9352", "obo_id": "DOID:9352", "label": "type 2 diabetes mellitus"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_11714", "obo_id": "DOID:11714", "label": "gestational diabetes"},
+        {"iri": "http://purl.obolibrary.org/obo/DOID_11716", "obo_id": "DOID:11716", "label": "prediabetes syndrome"}
+      ],
+      "edges": [
+        {"source": "http://purl.obolibrary.org/obo/DOID_4", "target": "http://purl.obolibrary.org/obo/DOID_0014667", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_4", "target": "http://purl.obolibrary.org/obo/DOID_7", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_0014667", "target": "http://purl.obolibrary.org/obo/DOID_4195", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_7", "target": "http://purl.obolibrary.org/obo/DOID_28", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_4195", "target": "http://purl.obolibrary.org/obo/DOID_4194", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_4194", "target": "http://purl.obolibrary.org/obo/DOID_9351", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_28", "target": "http://purl.obolibrary.org/obo/DOID_9351", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_9744", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_9352", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_11714", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_11716", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"}
+      ]
+    }
+  }
+}

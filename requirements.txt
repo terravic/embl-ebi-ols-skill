@@ -1,0 +1,6 @@
+# Core runtime uses Python >= 3.10 standard library (urllib, json, argparse, pathlib, time, logging).
+# Optional HTTP client for rate-limited requests (automatic fallback to urllib is built in):
+# polite-http>=0.1.0
+
+# Testing framework for CLI unit, smoke, and system tests:
+pytest>=7.4.0

@@ -1,0 +1,344 @@
+{
+  "iri": "http://purl.obolibrary.org/obo/GO_0006915",
+  "lang": "en",
+  "description": [
+    "A programmed cell death process which begins when a cell receives an internal (e.g. DNA damage) or external signal (e.g. an extracellular death ligand), and proceeds through a series of biochemical events (signaling pathway phase) which trigger an execution phase."
+  ],
+  "synonyms": [
+    "apoptosis",
+    "apoptotic cell death",
+    "programmed cell death by apoptosis",
+    "cell suicide"
+  ],
+  "annotation": {
+    "comment": [
+      "Note that a caspase-independent apoptotic process is also recognized in certain biological contexts."
+    ],
+    "has_obo_namespace": [
+      "biological_process"
+    ],
+    "id": [
+      "GO:0006915"
+    ]
+  },
+  "label": "apoptotic process",
+  "ontology_name": "go",
+  "ontology_prefix": "GO",
+  "ontology_iri": "http://purl.obolibrary.org/obo/go.owl",
+  "is_obsolete": false,
+  "term_replaced_by": null,
+  "is_defining_ontology": true,
+  "has_children": true,
+  "is_root": false,
+  "short_form": "GO_0006915",
+  "obo_id": "GO:0006915",
+  "in_subset": [
+    "goslim_agr",
+    "goslim_drosophila",
+    "goslim_generic"
+  ],
+  "obo_xref": [
+    {
+      "database": "MeSH",
+      "id": "D017209",
+      "description": "Apoptosis",
+      "url": "https://meshb.nlm.nih.gov/record/ui?ui=D017209"
+    },
+    {
+      "database": "Wikipedia",
+      "id": "Apoptosis",
+      "description": "Wikipedia entry for Apoptosis",
+      "url": "https://en.wikipedia.org/wiki/Apoptosis"
+    },
+    {
+      "database": "Reactome",
+      "id": "R-HSA-109581",
+      "description": "Apoptosis",
+      "url": "https://reactome.org/content/detail/R-HSA-109581"
+    }
+  ],
+  "obo_synonym": [
+    {
+      "name": "apoptosis",
+      "scope": "NARROW",
+      "type": null,
+      "xrefs": []
+    },
+    {
+      "name": "apoptotic cell death",
+      "scope": "EXACT",
+      "type": null,
+      "xrefs": []
+    },
+    {
+      "name": "programmed cell death by apoptosis",
+      "scope": "EXACT",
+      "type": null,
+      "xrefs": []
+    },
+    {
+      "name": "commitment to apoptosis",
+      "scope": "RELATED",
+      "type": null,
+      "xrefs": []
+    }
+  ],
+  "relations": {
+    "parents": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0012501",
+        "obo_id": "GO:0012501",
+        "short_form": "GO_0012501",
+        "label": "programmed cell death",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Cell death resulting from activation of endogenous cellular processes."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "children": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_1904019",
+        "obo_id": "GO:1904019",
+        "short_form": "GO_1904019",
+        "label": "epithelial cell apoptotic process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Any apoptotic process in an epithelial cell."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0051402",
+        "obo_id": "GO:0051402",
+        "short_form": "GO_0051402",
+        "label": "neuron apoptotic process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Any apoptotic process in a neuron."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "ancestors": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0012501",
+        "obo_id": "GO:0012501",
+        "short_form": "GO_0012501",
+        "label": "programmed cell death",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0008219",
+        "obo_id": "GO:0008219",
+        "short_form": "GO_0008219",
+        "label": "cell death",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0009987",
+        "obo_id": "GO:0009987",
+        "short_form": "GO_0009987",
+        "label": "cellular process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0008150",
+        "obo_id": "GO:0008150",
+        "short_form": "GO_0008150",
+        "label": "biological_process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": true
+      }
+    ],
+    "descendants": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_1904019",
+        "obo_id": "GO:1904019",
+        "short_form": "GO_1904019",
+        "label": "epithelial cell apoptotic process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0051402",
+        "obo_id": "GO:0051402",
+        "short_form": "GO_0051402",
+        "label": "neuron apoptotic process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      }
+    ],
+    "hierarchicalParents": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0012501",
+        "obo_id": "GO:0012501",
+        "short_form": "GO_0012501",
+        "label": "programmed cell death",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "hierarchicalChildren": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0097190",
+        "obo_id": "GO:0097190",
+        "short_form": "GO_0097190",
+        "label": "apoptotic signaling pathway",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "The series of molecular signals which triggers the apoptotic death of a cell."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0097194",
+        "obo_id": "GO:0097194",
+        "short_form": "GO_0097194",
+        "label": "execution phase of apoptosis",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "The stage of apoptosis in which effector caspases cleave key structural and regulatory proteins."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0042981",
+        "obo_id": "GO:0042981",
+        "short_form": "GO_0042981",
+        "label": "regulation of apoptotic process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Any process that modulates the occurrence or rate of cell death by apoptotic process."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "regulates"
+      }
+    ],
+    "hierarchicalAncestors": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0012501",
+        "obo_id": "GO:0012501",
+        "short_form": "GO_0012501",
+        "label": "programmed cell death",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0008219",
+        "obo_id": "GO:0008219",
+        "short_form": "GO_0008219",
+        "label": "cell death",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0009987",
+        "obo_id": "GO:0009987",
+        "short_form": "GO_0009987",
+        "label": "cellular process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0008150",
+        "obo_id": "GO:0008150",
+        "short_form": "GO_0008150",
+        "label": "biological_process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": true
+      }
+    ],
+    "hierarchicalDescendants": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0097190",
+        "obo_id": "GO:0097190",
+        "short_form": "GO_0097190",
+        "label": "apoptotic signaling pathway",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0097194",
+        "obo_id": "GO:0097194",
+        "short_form": "GO_0097194",
+        "label": "execution phase of apoptosis",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {"iri": "http://purl.obolibrary.org/obo/GO_0008150", "obo_id": "GO:0008150", "label": "biological_process", "is_root": true},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0009987", "obo_id": "GO:0009987", "label": "cellular process"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0008219", "obo_id": "GO:0008219", "label": "cell death"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0012501", "obo_id": "GO:0012501", "label": "programmed cell death"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0006915", "obo_id": "GO:0006915", "label": "apoptotic process"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_1904019", "obo_id": "GO:1904019", "label": "epithelial cell apoptotic process"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0051402", "obo_id": "GO:0051402", "label": "neuron apoptotic process"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0097190", "obo_id": "GO:0097190", "label": "apoptotic signaling pathway"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0097194", "obo_id": "GO:0097194", "label": "execution phase of apoptosis"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0042981", "obo_id": "GO:0042981", "label": "regulation of apoptotic process"}
+      ],
+      "edges": [
+        {"source": "http://purl.obolibrary.org/obo/GO_0008150", "target": "http://purl.obolibrary.org/obo/GO_0009987", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0009987", "target": "http://purl.obolibrary.org/obo/GO_0008219", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0008219", "target": "http://purl.obolibrary.org/obo/GO_0012501", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0012501", "target": "http://purl.obolibrary.org/obo/GO_0006915", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_1904019", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0051402", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0097190", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0097194", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0042981", "label": "regulates", "uri": "http://purl.obolibrary.org/obo/RO_0002211"}
+      ]
+    }
+  }
+}

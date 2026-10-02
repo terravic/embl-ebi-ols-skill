@@ -1,0 +1,541 @@
+{
+  "iri": "http://purl.obolibrary.org/obo/GO_0005634",
+  "lang": "en",
+  "description": [
+    "A membrane-bounded organelle of eukaryotic cells in which chromosomes are housed and replicated. In most cells, the nucleus contains all of the cell's chromosomes except the organellar chromosomes, and is the site of RNA synthesis and processing, and of ribosome assembly."
+  ],
+  "synonyms": [
+    "cell nucleus",
+    "horsetail nucleus"
+  ],
+  "annotation": {
+    "comment": [
+      "Note that nuclear pore complexes and the nuclear lamina are considered part of the nucleus."
+    ],
+    "has_obo_namespace": [
+      "cellular_component"
+    ],
+    "id": [
+      "GO:0005634"
+    ]
+  },
+  "label": "nucleus",
+  "ontology_name": "go",
+  "ontology_prefix": "GO",
+  "ontology_iri": "http://purl.obolibrary.org/obo/go.owl",
+  "is_obsolete": false,
+  "term_replaced_by": null,
+  "is_defining_ontology": true,
+  "has_children": true,
+  "is_root": false,
+  "short_form": "GO_0005634",
+  "obo_id": "GO:0005634",
+  "in_subset": [
+    "goslim_agr",
+    "goslim_chembl",
+    "goslim_drosophila",
+    "goslim_generic",
+    "goslim_mouse",
+    "goslim_plant",
+    "goslim_yeast"
+  ],
+  "obo_definition_citation": [
+    {
+      "definition": "A membrane-bounded organelle of eukaryotic cells in which chromosomes are housed and replicated. In most cells, the nucleus contains all of the cell's chromosomes except the organellar chromosomes, and is the site of RNA synthesis and processing, and of ribosome assembly.",
+      "oboXrefs": [
+        {
+          "database": "GOC",
+          "id": "go_curators",
+          "description": null,
+          "url": null
+        }
+      ]
+    }
+  ],
+  "obo_xref": [
+    {
+      "database": "MeSH",
+      "id": "D009687",
+      "description": "Cell Nucleus",
+      "url": "https://meshb.nlm.nih.gov/record/ui?ui=D009687"
+    },
+    {
+      "database": "NIF_Subcellular",
+      "id": "sao1702920020",
+      "description": "Nucleus",
+      "url": null
+    },
+    {
+      "database": "Wikipedia",
+      "id": "Cell_nucleus",
+      "description": "Wikipedia entry for Cell nucleus",
+      "url": "https://en.wikipedia.org/wiki/Cell_nucleus"
+    },
+    {
+      "database": "UMLS",
+      "id": "C0007610",
+      "description": "Cell Nucleus",
+      "url": null
+    }
+  ],
+  "obo_synonym": [
+    {
+      "name": "cell nucleus",
+      "scope": "EXACT",
+      "type": null,
+      "xrefs": [
+        {
+          "database": "GOC",
+          "id": "mah",
+          "description": null,
+          "url": null
+        }
+      ]
+    },
+    {
+      "name": "horsetail nucleus",
+      "scope": "NARROW",
+      "type": null,
+      "xrefs": [
+        {
+          "database": "GOC",
+          "id": "al",
+          "description": null,
+          "url": null
+        },
+        {
+          "database": "PMID",
+          "id": "15030757",
+          "description": null,
+          "url": "https://pubmed.ncbi.nlm.nih.gov/15030757/"
+        }
+      ]
+    },
+    {
+      "name": "nuclear compartment",
+      "scope": "RELATED",
+      "type": null,
+      "xrefs": []
+    }
+  ],
+  "relations": {
+    "parents": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043231",
+        "obo_id": "GO:0043231",
+        "short_form": "GO_0043231",
+        "label": "intracellular membrane-bounded organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Organized structure of distinctive morphology and function, bounded by a single or double lipid bilayer membrane and occurring within the cell."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "children": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0140513",
+        "obo_id": "GO:0140513",
+        "short_form": "GO_0140513",
+        "label": "nuclear protein-containing complex",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Any protein-containing complex located in the cell nucleus."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0045171",
+        "obo_id": "GO:0045171",
+        "short_form": "GO_0045171",
+        "label": "intercellular bridge nucleus",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A specialized cell nucleus situated near an intercellular bridge."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      }
+    ],
+    "ancestors": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043231",
+        "obo_id": "GO:0043231",
+        "short_form": "GO_0043231",
+        "label": "intracellular membrane-bounded organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Organized structure of distinctive morphology and function, bounded by a single or double lipid bilayer membrane and occurring within the cell."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043229",
+        "obo_id": "GO:0043229",
+        "short_form": "GO_0043229",
+        "label": "intracellular organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Organized structure of distinctive morphology and function, occurring within the cell."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043227",
+        "obo_id": "GO:0043227",
+        "short_form": "GO_0043227",
+        "label": "membrane-bounded organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Organized structure of distinctive morphology and function, bounded by a single or double lipid bilayer membrane."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043226",
+        "obo_id": "GO:0043226",
+        "short_form": "GO_0043226",
+        "label": "organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Organized structure of distinctive morphology and function. Includes the nucleus, mitochondria, plastids, vacuoles, vesicles, ribosomes and the cytoskeleton."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0110165",
+        "obo_id": "GO:0110165",
+        "short_form": "GO_0110165",
+        "label": "cellular anatomical entity",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A part of a cellular organism that is either an immaterial entity or a material entity with granularity above the level of a protein complex."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005575",
+        "obo_id": "GO:0005575",
+        "short_form": "GO_0005575",
+        "label": "cellular_component",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A location, relative to cellular compartments and structures, occupied by a macromolecular machine when it carries out a molecular function."
+        ],
+        "is_obsolete": false,
+        "is_root": true
+      }
+    ],
+    "descendants": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0140513",
+        "obo_id": "GO:0140513",
+        "short_form": "GO_0140513",
+        "label": "nuclear protein-containing complex",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Any protein-containing complex located in the cell nucleus."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0045171",
+        "obo_id": "GO:0045171",
+        "short_form": "GO_0045171",
+        "label": "intercellular bridge nucleus",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A specialized cell nucleus situated near an intercellular bridge."
+        ],
+        "is_obsolete": false,
+        "is_root": false
+      }
+    ],
+    "hierarchicalParents": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043231",
+        "obo_id": "GO:0043231",
+        "short_form": "GO_0043231",
+        "label": "intracellular membrane-bounded organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Organized structure of distinctive morphology and function, bounded by a single or double lipid bilayer membrane and occurring within the cell."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "subClassOf"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005622",
+        "obo_id": "GO:0005622",
+        "short_form": "GO_0005622",
+        "label": "intracellular anatomical structure",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A component of a cell contained within (but not including) the plasma membrane."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      }
+    ],
+    "hierarchicalChildren": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005635",
+        "obo_id": "GO:0005635",
+        "short_form": "GO_0005635",
+        "label": "nuclear envelope",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "The double lipid bilayer enclosing the nucleus and separating its contents from the rest of the cytoplasm; includes the intermembrane space, a gap of width 20-40 nm."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005654",
+        "obo_id": "GO:0005654",
+        "short_form": "GO_0005654",
+        "label": "nucleoplasm",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "That part of the nuclear content other than the chromosomes or the nucleolus."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005730",
+        "obo_id": "GO:0005730",
+        "short_form": "GO_0005730",
+        "label": "nucleolus",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A small, dense body one or more of which are present in the nucleus of eukaryotic cells. It is rich in RNA and protein, is not bounded by a limiting membrane, and is not seen during mitosis."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005643",
+        "obo_id": "GO:0005643",
+        "short_form": "GO_0005643",
+        "label": "nuclear pore",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "Any of the numerous perforations in the nuclear envelope that assemble with proteins to form the nuclear pore complex."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0031981",
+        "obo_id": "GO:0031981",
+        "short_form": "GO_0031981",
+        "label": "nuclear lumen",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "The volume enclosed by the nuclear inner membrane."
+        ],
+        "is_obsolete": false,
+        "is_root": false,
+        "relation_type": "part_of"
+      }
+    ],
+    "hierarchicalAncestors": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043231",
+        "obo_id": "GO:0043231",
+        "short_form": "GO_0043231",
+        "label": "intracellular membrane-bounded organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005622",
+        "obo_id": "GO:0005622",
+        "short_form": "GO_0005622",
+        "label": "intracellular anatomical structure",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043229",
+        "obo_id": "GO:0043229",
+        "short_form": "GO_0043229",
+        "label": "intracellular organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043227",
+        "obo_id": "GO:0043227",
+        "short_form": "GO_0043227",
+        "label": "membrane-bounded organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0043226",
+        "obo_id": "GO:0043226",
+        "short_form": "GO_0043226",
+        "label": "organelle",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0110165",
+        "obo_id": "GO:0110165",
+        "short_form": "GO_0110165",
+        "label": "cellular anatomical entity",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005575",
+        "obo_id": "GO:0005575",
+        "short_form": "GO_0005575",
+        "label": "cellular_component",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": true
+      }
+    ],
+    "hierarchicalDescendants": [
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005635",
+        "obo_id": "GO:0005635",
+        "short_form": "GO_0005635",
+        "label": "nuclear envelope",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005654",
+        "obo_id": "GO:0005654",
+        "short_form": "GO_0005654",
+        "label": "nucleoplasm",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005730",
+        "obo_id": "GO:0005730",
+        "short_form": "GO_0005730",
+        "label": "nucleolus",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0005643",
+        "obo_id": "GO:0005643",
+        "short_form": "GO_0005643",
+        "label": "nuclear pore",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      },
+      {
+        "iri": "http://purl.obolibrary.org/obo/GO_0031981",
+        "obo_id": "GO:0031981",
+        "short_form": "GO_0031981",
+        "label": "nuclear lumen",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "is_obsolete": false,
+        "is_root": false
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005575", "obo_id": "GO:0005575", "label": "cellular_component", "is_root": true},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0110165", "obo_id": "GO:0110165", "label": "cellular anatomical entity"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0043226", "obo_id": "GO:0043226", "label": "organelle"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005622", "obo_id": "GO:0005622", "label": "intracellular anatomical structure"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0043229", "obo_id": "GO:0043229", "label": "intracellular organelle"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0043227", "obo_id": "GO:0043227", "label": "membrane-bounded organelle"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0043231", "obo_id": "GO:0043231", "label": "intracellular membrane-bounded organelle"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005634", "obo_id": "GO:0005634", "label": "nucleus"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0140513", "obo_id": "GO:0140513", "label": "nuclear protein-containing complex"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0045171", "obo_id": "GO:0045171", "label": "intercellular bridge nucleus"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005635", "obo_id": "GO:0005635", "label": "nuclear envelope"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005654", "obo_id": "GO:0005654", "label": "nucleoplasm"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005730", "obo_id": "GO:0005730", "label": "nucleolus"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0005643", "obo_id": "GO:0005643", "label": "nuclear pore"},
+        {"iri": "http://purl.obolibrary.org/obo/GO_0031981", "obo_id": "GO:0031981", "label": "nuclear lumen"}
+      ],
+      "edges": [
+        {"source": "http://purl.obolibrary.org/obo/GO_0005575", "target": "http://purl.obolibrary.org/obo/GO_0110165", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0110165", "target": "http://purl.obolibrary.org/obo/GO_0043226", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0110165", "target": "http://purl.obolibrary.org/obo/GO_0005622", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0043226", "target": "http://purl.obolibrary.org/obo/GO_0043229", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0043226", "target": "http://purl.obolibrary.org/obo/GO_0043227", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005622", "target": "http://purl.obolibrary.org/obo/GO_0043229", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0043229", "target": "http://purl.obolibrary.org/obo/GO_0043231", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0043227", "target": "http://purl.obolibrary.org/obo/GO_0043231", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0043231", "target": "http://purl.obolibrary.org/obo/GO_0005634", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005622", "target": "http://purl.obolibrary.org/obo/GO_0005634", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0140513", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0045171", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0005635", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0005654", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0005730", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0005643", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
+        {"source": "http://purl.obolibrary.org/obo/GO_0005634", "target": "http://purl.obolibrary.org/obo/GO_0031981", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"}
+      ]
+    }
+  }
+}

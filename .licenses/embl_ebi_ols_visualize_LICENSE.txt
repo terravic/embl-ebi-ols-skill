@@ -1,0 +1,2 @@
+Notification: Please check the EMBL-EBI OLS terms of use and licensing at https://www.ebi.ac.uk/ols4/api-docs and https://www.ebi.ac.uk/about/terms-of-use/. Data from indexed ontologies is provided under open-access licenses (e.g., CC BY 4.0, CC0).
+Timestamp: 2026-10-02T15:18:12Z

@@ -1,0 +1,129 @@
+{
+  "responseHeader": {
+    "status": 0,
+    "QTime": 4
+  },
+  "response": {
+    "numFound": 6,
+    "start": 0,
+    "docs": [
+      {
+        "id": "doid:class:http://purl.obolibrary.org/obo/DOID_9351",
+        "iri": "http://purl.obolibrary.org/obo/DOID_9351",
+        "short_form": "DOID_9351",
+        "obo_id": "DOID:9351",
+        "label": "diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A glucose metabolism disease that is characterized by chronic hyperglycaemia with disturbances of carbohydrate, fat and protein metabolism resulting from defects in insulin secretion, insulin action, or both."
+        ],
+        "synonyms": [
+          "diabetes",
+          "diabetes mellitus (disorder)",
+          "DM"
+        ],
+        "type": "class",
+        "is_defining_ontology": true,
+        "is_obsolete": false
+      },
+      {
+        "id": "doid:class:http://purl.obolibrary.org/obo/DOID_9744",
+        "iri": "http://purl.obolibrary.org/obo/DOID_9744",
+        "short_form": "DOID_9744",
+        "obo_id": "DOID:9744",
+        "label": "type 1 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A diabetes mellitus that results from autoimmune destruction of insulin-producing beta cells of the pancreas."
+        ],
+        "synonyms": [
+          "insulin-dependent diabetes mellitus",
+          "IDDM",
+          "T1DM"
+        ],
+        "type": "class",
+        "is_defining_ontology": true,
+        "is_obsolete": false
+      },
+      {
+        "id": "doid:class:http://purl.obolibrary.org/obo/DOID_9352",
+        "iri": "http://purl.obolibrary.org/obo/DOID_9352",
+        "short_form": "DOID_9352",
+        "obo_id": "DOID:9352",
+        "label": "type 2 diabetes mellitus",
+        "ontology_name": "doid",
+        "ontology_prefix": "DOID",
+        "description": [
+          "A diabetes mellitus that is characterized by high blood glucose in the context of insulin resistance and relative insulin deficiency."
+        ],
+        "synonyms": [
+          "non-insulin-dependent diabetes mellitus",
+          "NIDDM",
+          "T2DM"
+        ],
+        "type": "class",
+        "is_defining_ontology": true,
+        "is_obsolete": false
+      },
+      {
+        "id": "go:class:http://purl.obolibrary.org/obo/GO_0005634",
+        "iri": "http://purl.obolibrary.org/obo/GO_0005634",
+        "short_form": "GO_0005634",
+        "obo_id": "GO:0005634",
+        "label": "nucleus",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A membrane-bounded organelle of eukaryotic cells in which chromosomes are housed and replicated."
+        ],
+        "synonyms": [
+          "cell nucleus",
+          "horsetail nucleus"
+        ],
+        "type": "class",
+        "is_defining_ontology": true,
+        "is_obsolete": false
+      },
+      {
+        "id": "go:class:http://purl.obolibrary.org/obo/GO_0006915",
+        "iri": "http://purl.obolibrary.org/obo/GO_0006915",
+        "short_form": "GO_0006915",
+        "obo_id": "GO:0006915",
+        "label": "apoptotic process",
+        "ontology_name": "go",
+        "ontology_prefix": "GO",
+        "description": [
+          "A programmed cell death process which begins when a cell receives an internal or external signal and proceeds through a series of biochemical events which trigger an execution phase."
+        ],
+        "synonyms": [
+          "apoptosis",
+          "apoptotic cell death",
+          "programmed cell death by apoptosis"
+        ],
+        "type": "class",
+        "is_defining_ontology": true,
+        "is_obsolete": false
+      },
+      {
+        "id": "ro:property:http://purl.obolibrary.org/obo/BFO_0000050",
+        "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+        "short_form": "BFO_0000050",
+        "obo_id": "BFO:0000050",
+        "label": "part_of",
+        "ontology_name": "ro",
+        "ontology_prefix": "RO",
+        "description": [
+          "A core relation that holds between a part and its whole."
+        ],
+        "synonyms": [
+          "part of"
+        ],
+        "type": "property",
+        "is_defining_ontology": true,
+        "is_obsolete": false
+      }
+    ]
+  }
+}

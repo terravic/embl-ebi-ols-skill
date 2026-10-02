@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.ebi.ac.uk/ols4/schemas/embl-ebi-ols-visualize-dashboard.json",
+  "title": "EMBL-EBI OLS Visualize Dashboard Payload",
+  "type": "object",
+  "required": ["title", "target_term", "nodes", "edges", "tree", "metrics", "citations", "disclaimer"],
+  "properties": {
+    "title": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "target_term": {
+      "type": "object",
+      "required": ["id", "label", "ontology"],
+      "properties": {
+        "id": { "type": "string" },
+        "iri": { "type": "string" },
+        "label": { "type": "string" },
+        "ontology": { "type": "string" },
+        "ontology_prefix": { "type": "string" },
+        "definition": { "type": "string" },
+        "is_obsolete": { "type": "boolean" },
+        "is_defining_ontology": { "type": "boolean" },
+        "is_root": { "type": "boolean" },
+        "synonyms": { "type": "array" },
+        "xrefs": { "type": "array" },
+        "parents": { "type": "array" },
+        "children": { "type": "array" }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "ontology", "is_target", "depth"],
+        "properties": {
+          "id": { "type": "string" },
+          "iri": { "type": "string" },
+          "label": { "type": "string" },
+          "ontology": { "type": "string" },
+          "definition": { "type": "string" },
+          "is_target": { "type": "boolean" },
+          "is_root": { "type": "boolean" },
+          "is_obsolete": { "type": "boolean" },
+          "depth": { "type": "integer" },
+          "on_root_path": { "type": "boolean" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "type", "is_hierarchical", "style"],
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "is_hierarchical": { "type": "boolean" },
+          "on_root_path": { "type": "boolean" },
+          "style": {
+            "type": "object",
+            "required": ["stroke", "dasharray"],
+            "properties": {
+              "stroke": { "type": "string" },
+              "dasharray": { "type": "string" },
+              "category": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "tree": { "type": "object" },
+    "root_paths": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["node_count", "edge_count"],
+      "properties": {
+        "node_count": { "type": "integer" },
+        "edge_count": { "type": "integer" },
+        "ancestor_count": { "type": "integer" },
+        "descendant_count": { "type": "integer" },
+        "direct_parent_count": { "type": "integer" },
+        "direct_child_count": { "type": "integer" },
+        "relation_counts": { "type": "object" }
+      }
+    },
+    "ontology_profile": { "type": ["object", "null"] },
+    "repository_stats": { "type": ["object", "null"] },
+    "citations": { "type": "array" },
+    "disclaimer": { "type": "string" }
+  }
+}

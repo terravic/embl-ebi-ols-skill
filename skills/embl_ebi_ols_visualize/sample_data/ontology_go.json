@@ -1,0 +1,107 @@
+{
+  "ontologyId": "go",
+  "loaded": "2026-09-25T08:12:00Z",
+  "updated": "2026-09-25T08:12:00Z",
+  "status": "LOADED",
+  "message": "",
+  "version": "2026-09-01",
+  "fileHash": "f4c9a87d2e31b9081a2b3c4d5e6f7a8b",
+  "loadAttempts": 1,
+  "numberOfTerms": 47852,
+  "numberOfProperties": 12,
+  "numberOfIndividuals": 0,
+  "config": {
+    "id": "http://purl.obolibrary.org/obo/go.owl",
+    "versionIri": "http://purl.obolibrary.org/obo/go/releases/2026-09-01/go.owl",
+    "title": "Gene Ontology",
+    "namespace": "go",
+    "preferredPrefix": "GO",
+    "description": "The Gene Ontology (GO) provides a computational representation of current scientific knowledge about the functions of genes (or, more properly, the protein and non-coding RNA molecules produced by genes) from many different organisms, from humans to bacteria.",
+    "homepage": "http://geneontology.org/",
+    "version": "2026-09-01",
+    "mailingList": "http://help.geneontology.org",
+    "tracker": "https://github.com/geneontology/go-ontology/issues",
+    "logo": "https://geneontology.org/assets/go-logo.png",
+    "creators": [
+      "Gene Ontology Consortium"
+    ],
+    "annotations": {
+      "license": [
+        "http://creativecommons.org/licenses/by/4.0/"
+      ],
+      "default-namespace": [
+        "gene_ontology"
+      ]
+    },
+    "fileLocation": "http://purl.obolibrary.org/obo/go.owl",
+    "oboSlims": true,
+    "labelProperty": "http://www.w3.org/2000/01/rdf-schema#label",
+    "definitionProperties": [
+      "http://purl.obolibrary.org/obo/IAO_0000115"
+    ],
+    "synonymProperties": [
+      "http://www.geneontology.org/formats/oboInOwl#hasExactSynonym"
+    ],
+    "hierarchicalProperties": [
+      "http://purl.obolibrary.org/obo/BFO_0000050",
+      "http://purl.obolibrary.org/obo/RO_0002202"
+    ],
+    "baseUris": [
+      "http://purl.obolibrary.org/obo/GO_"
+    ],
+    "hiddenProperties": [],
+    "preferredRootTerms": [
+      "http://purl.obolibrary.org/obo/GO_0008150",
+      "http://purl.obolibrary.org/obo/GO_0003674",
+      "http://purl.obolibrary.org/obo/GO_0005575"
+    ],
+    "isSkos": false,
+    "allowDownload": true,
+    "license": {
+      "label": "CC BY 4.0",
+      "logo": "http://mirrors.creativecommons.org/presskit/buttons/80x15/png/by.png",
+      "url": "http://creativecommons.org/licenses/by/4.0/"
+    }
+  },
+  "roots": [
+    {
+      "iri": "http://purl.obolibrary.org/obo/GO_0008150",
+      "obo_id": "GO:0008150",
+      "short_form": "GO_0008150",
+      "label": "biological_process",
+      "description": [
+        "A biological process is the execution of a genetically-encoded biological module or program."
+      ],
+      "ontology_name": "go",
+      "ontology_prefix": "GO",
+      "is_root": true,
+      "has_children": true
+    },
+    {
+      "iri": "http://purl.obolibrary.org/obo/GO_0003674",
+      "obo_id": "GO:0003674",
+      "short_form": "GO_0003674",
+      "label": "molecular_function",
+      "description": [
+        "A molecular process that can be carried out by the action of a single macromolecular machine, usually via direct physical interactions with other molecular entities."
+      ],
+      "ontology_name": "go",
+      "ontology_prefix": "GO",
+      "is_root": true,
+      "has_children": true
+    },
+    {
+      "iri": "http://purl.obolibrary.org/obo/GO_0005575",
+      "obo_id": "GO:0005575",
+      "short_form": "GO_0005575",
+      "label": "cellular_component",
+      "description": [
+        "A location, relative to cellular compartments and structures, occupied by a macromolecular machine when it carries out a molecular function."
+      ],
+      "ontology_name": "go",
+      "ontology_prefix": "GO",
+      "is_root": true,
+      "has_children": true
+    }
+  ]
+}

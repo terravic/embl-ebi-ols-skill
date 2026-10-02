@@ -1,0 +1,90 @@
+{
+  "numberOfOntologies": 264,
+  "numberOfClasses": 7245890,
+  "numberOfProperties": 41820,
+  "numberOfIndividuals": 319450,
+  "lastModified": "2026-09-28T06:15:00Z",
+  "version": "4.2.1",
+  "topOntologiesByClasses": [
+    {
+      "ontologyId": "ncbitaxon",
+      "title": "NCBI organismal classification",
+      "preferredPrefix": "NCBITaxon",
+      "numberOfClasses": 2541920,
+      "numberOfProperties": 14,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "chebi",
+      "title": "Chemical Entities of Biological Interest",
+      "preferredPrefix": "CHEBI",
+      "numberOfClasses": 204810,
+      "numberOfProperties": 10,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "ncit",
+      "title": "NCI Thesaurus OBO Edition",
+      "preferredPrefix": "NCIT",
+      "numberOfClasses": 184320,
+      "numberOfProperties": 142,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "go",
+      "title": "Gene Ontology",
+      "preferredPrefix": "GO",
+      "numberOfClasses": 47852,
+      "numberOfProperties": 12,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "mondo",
+      "title": "Mondo Disease Ontology",
+      "preferredPrefix": "MONDO",
+      "numberOfClasses": 29840,
+      "numberOfProperties": 84,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "efo",
+      "title": "Experimental Factor Ontology",
+      "preferredPrefix": "EFO",
+      "numberOfClasses": 52410,
+      "numberOfProperties": 165,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "hp",
+      "title": "Human Phenotype Ontology",
+      "preferredPrefix": "HP",
+      "numberOfClasses": 18640,
+      "numberOfProperties": 38,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "uberon",
+      "title": "Uber-anatomy ontology",
+      "preferredPrefix": "UBERON",
+      "numberOfClasses": 16920,
+      "numberOfProperties": 195,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "doid",
+      "title": "Human Disease Ontology",
+      "preferredPrefix": "DOID",
+      "numberOfClasses": 14210,
+      "numberOfProperties": 32,
+      "numberOfIndividuals": 0
+    },
+    {
+      "ontologyId": "cl",
+      "title": "Cell Ontology",
+      "preferredPrefix": "CL",
+      "numberOfClasses": 12850,
+      "numberOfProperties": 110,
+      "numberOfIndividuals": 0
+    }
+  ]
+}
