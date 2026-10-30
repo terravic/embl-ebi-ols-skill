@@ -50,7 +50,7 @@ def get_term(
     relations: str | list[str] | None = None,
     roots: bool = False,
     preferred_roots: bool = False,
-    mock: bool = False,
+    lineage: bool = False,
 ) -> dict[str, Any]:
   """Retrieves term metadata, root terms, and hierarchical relation blocks.
 
@@ -61,7 +61,8 @@ def get_term(
     relations: Optional list or comma-separated string of relation endpoints.
     roots: If True, fetches ontology root terms instead of a single term.
     preferred_roots: If True, fetches ontology preferred root terms.
-    mock: If True, uses local synthetic mock fixtures.
+    lineage: If True, also fetches the parents of every ancestor so the full
+      root-to-term lineage is connected by real OLS4 edges.
 
   Returns:
     Dictionary containing term details and a `relations` block.
@@ -72,7 +73,7 @@ def get_term(
     onto_slug = ols_utils.resolve_ontology(obo_id, ontology)
     sub_endpoint = "preferredRoots" if preferred_roots else "roots"
     url = f"{ols_utils.BASE_URL}/ontologies/{onto_slug}/terms/{sub_endpoint}"
-    return ols_utils.make_request(url, mock=mock)
+    return ols_utils.make_request(url)
 
   if not obo_id and not iri:
     raise ValueError("Provide either --obo_id or --iri to fetch a term.")
@@ -82,7 +83,7 @@ def get_term(
   encoded_iri = ols_utils.double_encode_iri(target_iri)
   base_term_url = f"{ols_utils.BASE_URL}/ontologies/{onto_slug}/terms/{encoded_iri}"
 
-  term_data = ols_utils.make_request(base_term_url, mock=mock)
+  term_data = ols_utils.make_request(base_term_url)
   existing_relations = term_data.get("relations", {})
   if not isinstance(existing_relations, dict):
     existing_relations = {}
@@ -91,25 +92,61 @@ def get_term(
   if requested_rels:
     fetched_relations: dict[str, Any] = {}
     for rel in requested_rels:
-      if mock and rel in existing_relations:
-        fetched_relations[rel] = existing_relations[rel]
+      rel_url = f"{base_term_url}/{rel}"
+      rel_resp = ols_utils.make_request(rel_url)
+      if rel == "graph":
+        fetched_relations[rel] = rel_resp
       else:
-        rel_url = f"{base_term_url}/{rel}"
-        rel_resp = ols_utils.make_request(rel_url, mock=mock)
-        if rel == "graph":
-          fetched_relations[rel] = rel_resp
-        else:
-          fetched_relations[rel] = ols_utils.extract_embedded_list(
-              rel_resp, "terms"
-          )
-    # Preserve graph or supplementary blocks from fixture in mock mode if helpful
-    if mock and "graph" in existing_relations and "graph" not in fetched_relations:
-      fetched_relations["graph"] = existing_relations["graph"]
+        fetched_relations[rel] = ols_utils.extract_embedded_list(
+            rel_resp, "terms"
+        )
     term_data["relations"] = fetched_relations
   else:
     term_data["relations"] = existing_relations
 
+  if lineage:
+    term_data["relations"]["lineage"] = fetch_ancestor_lineage(
+        term_data["relations"], onto_slug
+    )
+
   return term_data
+
+
+def fetch_ancestor_lineage(
+    relations: dict[str, Any], onto_slug: str
+) -> list[dict[str, Any]]:
+  """Fetches `/parents` and `/hierarchicalParents` for every ancestor.
+
+  This yields the real edges between ancestors, so the full root-to-term
+  lineage can be drawn without inferring any links.
+
+  Args:
+    relations: Relation block already fetched for the target term.
+    onto_slug: Ontology slug used to address the ancestor terms.
+
+  Returns:
+    List of `{iri, obo_id, parents, hierarchicalParents}` records.
+  """
+  seen: set[str] = set()
+  lineage: list[dict[str, Any]] = []
+  for key in ("ancestors", "hierarchicalAncestors"):
+    for anc in relations.get(key) or []:
+      if not isinstance(anc, dict):
+        continue
+      anc_iri = str(anc.get("iri") or "").strip()
+      if not anc_iri or anc_iri in seen:
+        continue
+      seen.add(anc_iri)
+      anc_url = (
+          f"{ols_utils.BASE_URL}/ontologies/{onto_slug}/terms/"
+          f"{ols_utils.double_encode_iri(anc_iri)}"
+      )
+      record: dict[str, Any] = {"iri": anc_iri, "obo_id": anc.get("obo_id")}
+      for rel in ("parents", "hierarchicalParents"):
+        resp = ols_utils.make_request(f"{anc_url}/{rel}")
+        record[rel] = ols_utils.extract_embedded_list(resp, "terms")
+      lineage.append(record)
+  return lineage
 
 
 def format_term_summary(term_data: dict[str, Any]) -> str:
@@ -177,6 +214,11 @@ def build_parser() -> argparse.ArgumentParser:
       help="Fetch preferred root terms for the specified ontology.",
   )
   parser.add_argument(
+      "--lineage",
+      action="store_true",
+      help="Also fetch each ancestor's parents to connect the full lineage.",
+  )
+  parser.add_argument(
       "--summary",
       action="store_true",
       help="Print a detailed human-readable summary to stdout.",
@@ -186,11 +228,6 @@ def build_parser() -> argparse.ArgumentParser:
       "--output",
       required=True,
       help="Output JSON file path.",
-  )
-  parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Use local synthetic mock data from sample_data/ without network calls.",
   )
   return parser
 
@@ -207,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         relations=args.relations,
         roots=args.roots,
         preferred_roots=args.preferred_roots,
-        mock=args.mock,
+        lineage=args.lineage,
     )
     out_path = ols_utils.write_json_output(data, args.output)
     if args.summary and not (args.roots or args.preferred_roots):

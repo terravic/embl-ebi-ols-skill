@@ -32,14 +32,14 @@ import visualize_hierarchy  # pylint: disable=wrong-import-position
 import visualize_ontology  # pylint: disable=wrong-import-position
 
 DEFAULT_PIPELINE_RELATIONS = (
-    "parents,children,ancestors,hierarchicalParents,hierarchicalChildren"
+    "parents,children,ancestors,hierarchicalParents,hierarchicalChildren,"
+    "hierarchicalAncestors,graph"
 )
 
 
 def resolve_query_to_entity(
     query: str,
     ontology: str | None = None,
-    mock: bool = False,
 ) -> tuple[str | None, str | None, str | None, dict[str, Any]]:
   """Resolves a search keyword to `(obo_id, iri, ontology_slug, search_payload)`."""
   exact_res = search_ols.search_ols(
@@ -49,7 +49,6 @@ def resolve_query_to_entity(
       exact=True,
       defining=True,
       rows=10,
-      mock=mock,
   )
   docs = exact_res.get("response", {}).get("docs", [])
   search_payload = exact_res
@@ -62,7 +61,6 @@ def resolve_query_to_entity(
         exact=False,
         defining=False,
         rows=10,
-        mock=mock,
     )
     docs = broad_res.get("response", {}).get("docs", [])
     search_payload = broad_res
@@ -92,7 +90,6 @@ def run_pipeline(
     ontology: str | None = None,
     relations: str = DEFAULT_PIPELINE_RELATIONS,
     include_stats: bool = False,
-    mock: bool = False,
 ) -> dict[str, Any]:
   """Executes the complete OLS4 lookup, hierarchy compilation, and dashboard pipeline.
 
@@ -104,7 +101,6 @@ def run_pipeline(
     ontology: Optional ontology slug (`go`, `doid`, `hp`).
     relations: Comma-separated hierarchical relations to fetch.
     include_stats: If True, fetches ontology metadata and global `/v2/stats`.
-    mock: If True, executes offline using fixtures in `sample_data/`.
 
   Returns:
     Dictionary summarizing generated paths and metrics.
@@ -130,7 +126,7 @@ def run_pipeline(
         resolved_iri,
         resolved_ontology,
         search_payload,
-    ) = resolve_query_to_entity(query=query, ontology=ontology, mock=mock)
+    ) = resolve_query_to_entity(query=query, ontology=ontology)
     search_json_path = ols_utils.write_json_output(
         search_payload, out_dir / "search_results.json"
     )
@@ -146,7 +142,7 @@ def run_pipeline(
         iri=resolved_iri,
         ontology=resolved_ontology,
         relations=relations,
-        mock=mock,
+        lineage=True,
     )
     term_json_path = ols_utils.write_json_output(
         term_data, out_dir / "term.json"
@@ -172,14 +168,14 @@ def run_pipeline(
   )
   if should_fetch_ontology and resolved_ontology:
     onto_data = get_ontology.get_ontology(
-        ontology=resolved_ontology, include_roots=True, mock=mock
+        ontology=resolved_ontology, include_roots=True
     )
     ontology_json_path = ols_utils.write_json_output(
         onto_data, out_dir / "ontology.json"
     )
 
   if include_stats or not (resolved_obo_id or resolved_iri):
-    stats_data = get_stats.get_stats(mock=mock)
+    stats_data = get_stats.get_stats()
     stats_json_path = ols_utils.write_json_output(
         stats_data, out_dir / "stats.json"
     )
@@ -307,11 +303,6 @@ def build_parser() -> argparse.ArgumentParser:
       help="Fetch and visualize ontology metadata and global repository statistics.",
   )
   parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Run offline using deterministic synthetic mock fixtures in sample_data/.",
-  )
-  parser.add_argument(
       "-o",
       "--output_dir",
       "--output",
@@ -335,7 +326,6 @@ def main(argv: list[str] | None = None) -> int:
         ontology=args.ontology,
         relations=args.relations,
         include_stats=args.stats,
-        mock=args.mock,
     )
     print(format_pipeline_summary(result))
     return 0

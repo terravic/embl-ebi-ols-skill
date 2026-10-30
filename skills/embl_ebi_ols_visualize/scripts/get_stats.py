@@ -25,19 +25,16 @@ if str(SCRIPT_DIR) not in sys.path:
 import ols_utils  # pylint: disable=wrong-import-position
 
 
-def get_stats(mock: bool = False) -> dict[str, Any]:
+def get_stats() -> dict[str, Any]:
   """Fetches global OLS4 repository statistics from `/v2/stats`.
 
   Args:
-    mock: If True, returns synthetic offline stats from `sample_data/stats.json`.
 
   Returns:
     Dictionary containing global ontology, class, property, and individual counts.
   """
   return ols_utils.make_request(
       f"{ols_utils.BASE_URL}/v2/stats",
-      mock=mock,
-      fixture_key="stats.json" if mock else None,
   )
 
 
@@ -52,11 +49,6 @@ def build_parser() -> argparse.ArgumentParser:
       required=True,
       help="Output JSON file path.",
   )
-  parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Use local synthetic mock data from sample_data/stats.json.",
-  )
   return parser
 
 
@@ -65,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
   parser = build_parser()
   args = parser.parse_args(argv)
   try:
-    result = get_stats(mock=args.mock)
+    result = get_stats()
     out_path = ols_utils.write_json_output(result, args.output)
     num_ontologies = result.get("numberOfOntologies", 0)
     num_classes = result.get("numberOfClasses", 0)

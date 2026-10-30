@@ -54,10 +54,16 @@ Keyword search with automatic entity resolution and visual dashboard:
 python3 scripts/run_pipeline.py --query "apoptosis" --ontology go -o ./output/apoptosis/
 ```
 
-Offline synthetic mock mode (for sandboxed testing without network egress):
+Term plus ontology metadata and global repository statistics:
 ```bash
-python3 scripts/run_pipeline.py --obo_id "GO:0005634" -o ./output/mock_nucleus/ --mock
+python3 scripts/run_pipeline.py --obo_id "GO:0005634" --stats -o ./output/GO_0005634_stats/
 ```
+
+**Data integrity rules (always follow):**
+- The skill has no offline or mock mode. Every run queries the live OLS4 API; if it is unreachable, report the error to the user instead of presenting other data.
+- Only report values present in the fetched data. Never fill gaps with assumed definitions, licenses, synonym scopes, relation types, or lineage links.
+- The dashboard's **Examples** group (nucleus, diabetes mellitus, apoptotic process) is bundled demo data from `sample_data/`. Never present it as the result of the user's query.
+- Files loaded with `Load JSON` are processed from their own content only.
 
 ### 2. Modular Subcommands
 Query individual endpoints directly using scripts under `scripts/`:
@@ -69,7 +75,7 @@ python3 scripts/search_ols.py --query "diabetes" --rows 5 --output ./output/sear
 python3 scripts/suggest_ols.py --query "diabet" --rows 5 --output ./output/suggest.json
 
 # Get term details with hierarchical relations
-python3 scripts/get_term.py --obo_id "GO:0005634" --relations parents,children,ancestors --output ./output/term.json
+python3 scripts/get_term.py --obo_id "GO:0005634" --relations parents,children,ancestors,graph --lineage --output ./output/term.json
 
 # Generate standalone dashboard from term JSON
 python3 scripts/generate_dashboard.py --term_json ./output/term.json -o ./dashboard.html

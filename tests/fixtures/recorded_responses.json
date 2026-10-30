@@ -1,0 +1,891 @@
+{
+  "/ontologies/ro/properties/http://purl.obolibrary.org/obo/BFO_0000050": {
+    "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+    "lang": "en",
+    "description": [
+      "a core relation that holds between a part and its whole"
+    ],
+    "synonyms": [],
+    "annotation": {
+      "alternative label": [
+        "part_of"
+      ],
+      "editor note": [
+        "Everything is part of itself. Any part of any part of a thing is itself part of that thing. Two distinct things cannot be part of each other.",
+        "Occurrents are not subject to change and so parthood between occurrents holds for all the times that the part exists. Many continuants are subject to change, so parthood between continuants will only hold at certain times, but this is difficult to specify in OWL. See http://purl.obolibrary.org/obo/ro/docs/temporal-semantics/",
+        "Parthood requires the part and the whole to have compatible classes: only an occurrent can be part of an occurrent; only a process can be part of a process; only a continuant can be part of a continuant; only an independent continuant can be part of an independent continuant; only an immaterial entity can be part of an immaterial entity; only a specifically dependent continuant can be part of a specifically dependent continuant; only a generically dependent continuant can be part of a generically dependent continuant. (This list is not exhaustive.)\n\nA continuant cannot be part of an occurrent: use 'participates in'. An occurrent cannot be part of a continuant: use 'has participant'. A material entity cannot be part of an immaterial entity: use 'has location'. A specifically dependent continuant cannot be part of an independent continuant: use 'inheres in'. An independent continuant cannot be part of a specifically dependent continuant: use 'bearer of'."
+      ],
+      "editor preferred term": [
+        "is part of"
+      ],
+      "example of usage": [
+        "my brain is part of my body (continuant parthood, two material entities)",
+        "my stomach cavity is part of my stomach (continuant parthood, immaterial entity is part of material entity)",
+        "this day is part of this year (occurrent parthood)"
+      ],
+      "is homeomorphic for": [
+        "http://purl.obolibrary.org/obo/BFO_0000002",
+        "http://purl.obolibrary.org/obo/BFO_0000003",
+        "http://purl.obolibrary.org/obo/BFO_0000004",
+        "http://purl.obolibrary.org/obo/BFO_0000017",
+        "http://purl.obolibrary.org/obo/BFO_0000019",
+        "http://purl.obolibrary.org/obo/BFO_0000020",
+        "http://purl.obolibrary.org/obo/BFO_0000031"
+      ],
+      "seeAlso": [
+        "http://ontologydesignpatterns.org/wiki/Community:Parts_and_Collections",
+        "http://ontologydesignpatterns.org/wiki/Submissions:PartOf"
+      ],
+      "temporal interpretation": [
+        "http://purl.obolibrary.org/obo/RO_0001901"
+      ]
+    },
+    "label": "part of",
+    "ontology_name": "ro",
+    "ontology_prefix": "RO",
+    "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+    "is_obsolete": false,
+    "is_defining_ontology": true,
+    "has_children": true,
+    "is_root": false,
+    "short_form": "RO_",
+    "obo_id": "RO:",
+    "_links": {
+      "self": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050?lang=en"
+      },
+      "parents": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/parents"
+      },
+      "ancestors": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/ancestors"
+      },
+      "jstree": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/jstree"
+      },
+      "children": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/children"
+      },
+      "descendants": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/descendants"
+      }
+    }
+  },
+  "/ontologies/ro/properties/http://purl.obolibrary.org/obo/BFO_0000050/parents": {
+    "_embedded": {
+      "properties": [
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002131",
+          "lang": "en",
+          "description": [
+            "x overlaps y if and only if there exists some z such that x has part z and z part of y"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "expand expression to": [
+              "http://purl.obolibrary.org/obo/BFO_0000051 some (http://purl.obolibrary.org/obo/BFO_0000050 some ?Y)"
+            ],
+            "has curation status": [
+              "http://purl.obolibrary.org/obo/IAO_0000125"
+            ],
+            "temporal interpretation": [
+              "http://purl.obolibrary.org/obo/RO_0001901"
+            ]
+          },
+          "label": "overlaps",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": true,
+          "is_root": false,
+          "short_form": "RO_0002131",
+          "obo_id": "RO:0002131",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002131?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002131/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002131/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002131/jstree"
+            },
+            "children": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002131/children"
+            },
+            "descendants": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002131/descendants"
+            }
+          }
+        }
+      ]
+    },
+    "_links": {
+      "self": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/parents?page=0&size=1000"
+      }
+    },
+    "page": {
+      "size": 1000,
+      "totalElements": 1,
+      "totalPages": 1,
+      "number": 0
+    }
+  },
+  "/ontologies/ro/properties/http://purl.obolibrary.org/obo/BFO_0000050/children": {
+    "_embedded": {
+      "properties": [
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002007",
+          "lang": "en",
+          "description": [
+            "A relationship that applies between a continuant and its outer, bounding layer.  Examples include the relationship between a multicellular organism and its integument, between an animal cell and its plasma membrane, and between a membrane bound organelle and its outer/bounding membrane.",
+            "X outer_layer_of Y iff:\n. X :continuant that bearer_of some PATO:laminar\n. X part_of Y\n. exists Z :surface\n. X has_boundary Z\n. Z boundary_of Y\n\nhas_boundary: http://purl.obolibrary.org/obo/RO_0002002\nboundary_of: http://purl.obolibrary.org/obo/RO_0002000"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "term editor": [
+              "https://orcid.org/0000-0002-7073-9172"
+            ]
+          },
+          "label": "bounding layer of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002007",
+          "obo_id": "RO:0002007",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002007?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002007/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002007/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002007/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002012",
+          "lang": "en",
+          "description": [
+            "A part of relation that applies only between occurrents."
+          ],
+          "synonyms": [],
+          "annotation": {},
+          "label": "occurrent part of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002012",
+          "obo_id": "RO:0002012",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002012?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002012/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002012/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002012/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002223",
+          "lang": "en",
+          "description": [
+            "inverse of starts with"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "definition source": [
+              "Allen"
+            ],
+            "has curation status": [
+              "http://purl.obolibrary.org/obo/IAO_0000125"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "starts",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002223",
+          "obo_id": "RO:0002223",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002223?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002223/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002223/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002223/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002229",
+          "lang": "en",
+          "description": [
+            "inverse of ends with"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "has curation status": [
+              "http://purl.obolibrary.org/obo/IAO_0000125"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "ends",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002229",
+          "obo_id": "RO:0002229",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002229?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002229/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002229/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002229/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002249",
+          "lang": "en",
+          "description": [
+            "inverse of has active ingredient"
+          ],
+          "synonyms": [],
+          "annotation": {},
+          "label": "active ingredient in",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002249",
+          "obo_id": "RO:0002249",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002249?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002249/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002249/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002249/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002350",
+          "lang": "en",
+          "description": [
+            "is member of is a mereological relation between a item and a collection."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "alternative label": [
+              "is member of",
+              "member part of"
+            ],
+            "definition source": [
+              "SIO"
+            ],
+            "example of usage": [
+              "An organism that is a member of a population of organisms"
+            ],
+            "temporal interpretation": [
+              "http://purl.obolibrary.org/obo/RO_0001901"
+            ]
+          },
+          "label": "member of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002350",
+          "obo_id": "RO:0002350",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002350?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002350/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002350/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002350/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002380",
+          "lang": "en",
+          "description": [
+            "x is a branching part of y if and only if x is part of y and x is connected directly or indirectly to the main stem of y"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "example of usage": [
+              "In the tree T depicted in https://oborel.github.io/obo-relations/branching_part_of.png, B1 is a (direct) branching part of T. B1-1, B1-2, and B1-3 are also branching parts of T, but these are considered indirect branching parts as they do not directly connect to the main stem S"
+            ],
+            "seeAlso": [
+              "https://github.com/obophenotype/uberon/issues/2212"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "branching part of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002380",
+          "obo_id": "RO:0002380",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002380?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002380/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002380/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002380/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002381",
+          "lang": "en",
+          "description": [
+            "x main_stem_of y if y is a branching structure and x is a channel that traces a linear path through y, such that x has higher capacity than any other such path."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "example of usage": [
+              "In the tree T depicted in https://oborel.github.io/obo-relations/branching_part_of.png, S is the main stem of T. There are no other main stems. If we were to slice off S to get a new tree T', rooted at the root of B1, then B1 would be the main stem of T'."
+            ],
+            "has curation status": [
+              "http://purl.obolibrary.org/obo/IAO_0000428"
+            ],
+            "seeAlso": [
+              "https://github.com/obophenotype/uberon/issues/2212"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "main stem of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002381",
+          "obo_id": "RO:0002381",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002381?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002381/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002381/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002381/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002507",
+          "lang": "en",
+          "description": [
+            "s determined by f if and only if s is a type of system, and f is a material entity that is part of s, such that f exerts a strong causal influence on the functioning of s, and the removal of f would cause the collapse of s."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "Creator": [
+              "https://orcid.org/0000-0002-4366-3088",
+              "https://orcid.org/0000-0002-6601-2165"
+            ],
+            "OBO foundry unique label": [
+              "determined by (system to material entity)"
+            ],
+            "definition source": [
+              "http://www.ncbi.nlm.nih.gov/pubmed/24330602"
+            ],
+            "editor note": [
+              "The label for this relation is probably too general for its restricted use, where the domain is a system. It may be relabeled in future"
+            ],
+            "example of usage": [
+              "A coral reef environment is determined by a particular coral reef"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "determined by",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002507",
+          "obo_id": "RO:0002507",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002507?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002507/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002507/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002507/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002525",
+          "lang": "en",
+          "description": [
+            "inverse of has subsequence"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "alternative label": [
+              "contained by"
+            ],
+            "citesAsAuthority": [
+              "http://biorxiv.org/content/early/2014/06/27/006650.abstract"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "is subsequence of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": true,
+          "is_root": false,
+          "short_form": "RO_0002525",
+          "obo_id": "RO:0002525",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002525?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002525/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002525/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002525/jstree"
+            },
+            "children": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002525/children"
+            },
+            "descendants": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002525/descendants"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002571",
+          "lang": "en",
+          "description": [
+            "x lumen_of y iff x is the space or substance that is part of y and does not cross any of the inner membranes or boundaries of y that is maximal with respect to the volume of the convex hull."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "definition source": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "lumen of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": true,
+          "is_root": false,
+          "short_form": "RO_0002571",
+          "obo_id": "RO:0002571",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002571?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002571/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002571/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002571/jstree"
+            },
+            "children": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002571/children"
+            },
+            "descendants": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002571/descendants"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0002576",
+          "lang": "en",
+          "description": [
+            "inverse of has skeleton"
+          ],
+          "synonyms": [],
+          "annotation": {
+            "term editor": [
+              "https://orcid.org/0000-0002-6601-2165"
+            ]
+          },
+          "label": "skeleton of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0002576",
+          "obo_id": "RO:0002576",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002576?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002576/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002576/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002576/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0015003",
+          "lang": "en",
+          "description": [
+            "A relation between a group and another group it is part of but does not fully constitute."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "curator note": [
+              "This is used specifically for sets whose members are specified by some set-forming operator (method of grouping) such as clustering analyses in single cell transcriptomics."
+            ],
+            "editor note": [
+              "X subcluster_of Y iff: X and Y are clusters/groups; X != Y; all members of X are also members of Y."
+            ],
+            "term editor": [
+              "https://orcid.org/0000-0001-7258-9596"
+            ]
+          },
+          "label": "subcluster of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": false,
+          "is_root": false,
+          "short_form": "RO_0015003",
+          "obo_id": "RO:0015003",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0015003?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0015003/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0015003/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0015003/jstree"
+            }
+          }
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/RO_0019009",
+          "lang": "en",
+          "description": [
+            "Inverse of 'has component'."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "Contributor": [
+              "https://orcid.org/0000-0002-8688-6599"
+            ]
+          },
+          "label": "component of",
+          "ontology_name": "ro",
+          "ontology_prefix": "RO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/ro.owl",
+          "is_obsolete": false,
+          "is_defining_ontology": true,
+          "has_children": true,
+          "is_root": false,
+          "short_form": "RO_0019009",
+          "obo_id": "RO:0019009",
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0019009?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0019009/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0019009/ancestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0019009/jstree"
+            },
+            "children": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0019009/children"
+            },
+            "descendants": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0019009/descendants"
+            }
+          }
+        }
+      ]
+    },
+    "_links": {
+      "self": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/ro/properties/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FBFO_0000050/children?page=0&size=1000"
+      }
+    },
+    "page": {
+      "size": 1000,
+      "totalElements": 14,
+      "totalPages": 1,
+      "number": 0
+    }
+  },
+  "/ontologies/envo/individuals/http://purl.obolibrary.org/obo/ENVO_01001571": {
+    "iri": "http://purl.obolibrary.org/obo/ENVO_01001571",
+    "lang": "en",
+    "description": [],
+    "synonyms": [],
+    "annotation": {
+      "created_by": [
+        "https://orcid.org/0000-0002-4366-3088"
+      ],
+      "creation_date": [
+        "2019-03-05T17:51:32Z"
+      ],
+      "database_cross_reference": [
+        "https://www.worldwildlife.org/biomes/deserts-and-xeric-shrublands"
+      ]
+    },
+    "type": null,
+    "label": "Australasia Ecoregion",
+    "ontology_name": "envo",
+    "ontology_prefix": "ENVO",
+    "ontology_iri": "http://purl.obolibrary.org/obo/envo.owl",
+    "is_obsolete": false,
+    "is_defining_ontology": true,
+    "has_children": false,
+    "is_root": false,
+    "short_form": "ENVO_01001571",
+    "obo_id": "ENVO:01001571",
+    "in_subset": null,
+    "_links": {
+      "self": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/individuals/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001571?lang=en"
+      },
+      "types": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/individuals/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001571/types"
+      },
+      "alltypes": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/individuals/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001571/alltypes"
+      },
+      "jstree": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/individuals/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001571/jstree"
+      }
+    }
+  },
+  "/ontologies/envo/individuals/http://purl.obolibrary.org/obo/ENVO_01001571/types": {
+    "_embedded": {
+      "terms": [
+        {
+          "iri": "http://purl.obolibrary.org/obo/ENVO_01001570",
+          "lang": "en",
+          "description": [
+            "An ecoregion which is located on a landmass."
+          ],
+          "synonyms": [],
+          "annotation": {
+            "created_by": [
+              "https://orcid.org/0000-0002-4366-3088"
+            ],
+            "creation_date": [
+              "2019-03-05T17:40:44Z"
+            ],
+            "database_cross_reference": [
+              "https://www.worldwildlife.org/biome-categories/terrestrial-ecoregions"
+            ]
+          },
+          "label": "terrestrial ecoregion",
+          "ontology_name": "envo",
+          "ontology_prefix": "ENVO",
+          "ontology_iri": "http://purl.obolibrary.org/obo/envo.owl",
+          "is_obsolete": false,
+          "term_replaced_by": null,
+          "is_defining_ontology": true,
+          "has_children": true,
+          "is_root": false,
+          "short_form": "ENVO_01001570",
+          "obo_id": "ENVO:01001570",
+          "in_subset": null,
+          "obo_definition_citation": null,
+          "obo_xref": [
+            {
+              "database": null,
+              "id": "https://www.worldwildlife.org/biome-categories/terrestrial-ecoregions",
+              "description": null,
+              "url": "https://www.worldwildlife.org/biome-categories/terrestrial-ecoregions"
+            }
+          ],
+          "obo_synonym": null,
+          "is_preferred_root": false,
+          "_links": {
+            "self": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570?lang=en"
+            },
+            "parents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/parents"
+            },
+            "ancestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/ancestors"
+            },
+            "hierarchicalParents": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/hierarchicalParents"
+            },
+            "hierarchicalAncestors": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/hierarchicalAncestors"
+            },
+            "jstree": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/jstree"
+            },
+            "children": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/children"
+            },
+            "descendants": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/descendants"
+            },
+            "hierarchicalChildren": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/hierarchicalChildren"
+            },
+            "hierarchicalDescendants": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/hierarchicalDescendants"
+            },
+            "graph": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/graph"
+            },
+            "adjacent_to": {
+              "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/terms/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001570/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FRO_0002220"
+            }
+          }
+        }
+      ]
+    },
+    "_links": {
+      "self": {
+        "href": "http://www.ebi.ac.uk/ols4/api/ontologies/envo/individuals/http%253A%252F%252Fpurl.obolibrary.org%252Fobo%252FENVO_01001571/types?page=0&size=1000"
+      }
+    },
+    "page": {
+      "size": 1000,
+      "totalElements": 1,
+      "totalPages": 1,
+      "number": 0
+    }
+  }
+}

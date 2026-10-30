@@ -9,11 +9,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Shared utilities, rate-limited HTTP transport, and mock engine for EMBL-EBI OLS4."""
+"""Shared utilities, and rate-limited HTTP transport for EMBL-EBI OLS4."""
 
 from __future__ import annotations
 
-import copy
 from datetime import datetime, timezone
 import json
 import logging
@@ -299,264 +298,60 @@ def _enforce_rate_limit() -> None:
   _LAST_REQUEST_MONOTONIC = time.monotonic()
 
 
-def load_mock_data(fixture_name: str) -> dict[str, Any]:
-  """Loads a JSON fixture from `sample_data/`.
+EXAMPLE_TERM_FILES: tuple[str, ...] = (
+    "go_0005634_nucleus.json",
+    "doid_9351_diabetes.json",
+    "go_0006915_apoptosis.json",
+)
+
+EXAMPLE_ONTOLOGY_FILES: dict[str, str] = {
+    "go": "ontology_go.json",
+}
+
+
+def load_example_data(filename: str) -> dict[str, Any]:
+  """Loads a bundled example JSON file from `sample_data/`.
+
+  These files are only used to populate the dashboard's "Examples" group.
+  They are never substituted for live OLS4 API responses or uploaded data.
 
   Args:
-    fixture_name: File basename, OBO ID, or logical fixture key.
+    filename: File basename inside `sample_data/` (e.g. `go_0005634_nucleus.json`).
 
   Returns:
-    Parsed JSON dictionary from `sample_data/`.
+    Parsed JSON dictionary.
 
   Raises:
-    FileNotFoundError: If no matching mock fixture exists.
+    FileNotFoundError: If the example file does not exist.
   """
-  sample_dir = get_skill_root() / "sample_data"
-  key = fixture_name.strip()
-
-  alias_map: dict[str, str] = {
-      "GO:0005634": "go_0005634_nucleus.json",
-      "GO_0005634": "go_0005634_nucleus.json",
-      "http://purl.obolibrary.org/obo/GO_0005634": "go_0005634_nucleus.json",
-      "nucleus": "go_0005634_nucleus.json",
-      "DOID:9351": "doid_9351_diabetes.json",
-      "DOID_9351": "doid_9351_diabetes.json",
-      "http://purl.obolibrary.org/obo/DOID_9351": "doid_9351_diabetes.json",
-      "diabetes": "doid_9351_diabetes.json",
-      "GO:0006915": "go_0006915_apoptosis.json",
-      "GO_0006915": "go_0006915_apoptosis.json",
-      "http://purl.obolibrary.org/obo/GO_0006915": "go_0006915_apoptosis.json",
-      "apoptosis": "go_0006915_apoptosis.json",
-      "apoptotic process": "go_0006915_apoptosis.json",
-      "search": "search_diabetes.json",
-      "suggest": "search_diabetes.json",
-      "ontology": "ontology_go.json",
-      "go": "ontology_go.json",
-      "stats": "stats.json",
-  }
-
-  filename = alias_map.get(key, alias_map.get(key.upper(), key))
-  if not filename.endswith(".json"):
-    filename = f"{filename}.json"
-
-  candidate = sample_dir / filename
+  candidate = get_skill_root() / "sample_data" / filename
   if not candidate.is_file():
-    raise FileNotFoundError(
-        f"Mock fixture '{fixture_name}' (resolved to '{candidate}') not found in {sample_dir}."
-    )
+    raise FileNotFoundError(f"Example data file not found: {candidate}")
   with candidate.open("r", encoding="utf-8") as handle:
     return json.load(handle)
 
 
-def _dispatch_mock_request(
-    url: str, params: dict[str, Any] | None = None, fixture_key: str | None = None
-) -> dict[str, Any]:
-  """Synthesizes an OLS4-compliant response from local fixtures for `--mock`."""
-  params = params or {}
-  if fixture_key:
-    try:
-      return copy.deepcopy(load_mock_data(fixture_key))
-    except FileNotFoundError:
-      pass
-
-  parsed_url = urllib.parse.urlparse(url)
-  path = parsed_url.path.rstrip("/")
-
-  # 1. /v2/stats
-  if path.endswith("/v2/stats") or path.endswith("/stats"):
-    return copy.deepcopy(load_mock_data("stats.json"))
-
-  # 2. /search or /suggest
-  if path.endswith("/search") or path.endswith("/suggest"):
-    raw_search = copy.deepcopy(load_mock_data("search_diabetes.json"))
-    docs = raw_search.get("response", {}).get("docs", [])
-    query = str(params.get("q", "")).strip().lower()
-    ontology_filter = str(params.get("ontology", "")).strip().lower()
-    type_filter = str(params.get("type", "")).strip().lower()
-    exact_flag = str(params.get("exact", "")).lower() == "true"
-
-    filtered = []
-    for doc in docs:
-      if ontology_filter and doc.get("ontology_name", "").lower() != ontology_filter:
-        continue
-      if type_filter and doc.get("type", "").lower() != type_filter:
-        continue
-      label = str(doc.get("label", "")).lower()
-      obo_id = str(doc.get("obo_id", "")).lower()
-      synonyms = [str(s).lower() for s in doc.get("synonyms", [])]
-      descriptions = " ".join(doc.get("description", [])).lower()
-
-      if not query:
-        filtered.append(doc)
-      elif exact_flag:
-        if query == label or query == obo_id or query in synonyms:
-          filtered.append(doc)
-      else:
-        if (
-            query in label
-            or query in obo_id
-            or any(query in s for s in synonyms)
-            or query in descriptions
-        ):
-          filtered.append(doc)
-
-    # If no match in fixture for an arbitrary mock query, return all or top docs
-    # only if query matches a known concept; otherwise return empty docs list.
-    rows = int(params.get("rows", 10))
-    start = int(params.get("start", 0))
-    sliced = filtered[start : start + rows]
-    return {
-        "responseHeader": {"status": 0, "QTime": 1},
-        "response": {
-            "numFound": len(filtered),
-            "start": start,
-            "docs": sliced,
-        },
-    }
-
-  # 3. Term / Property / Individual / Ontology routes
-  unquoted_path = urllib.parse.unquote(urllib.parse.unquote(path))
-
-  # Check if a relation sub-resource is requested on a term
-  for rel in VALID_TERM_RELATIONS:
-    if unquoted_path.endswith(f"/{rel}"):
-      base_term_data = _resolve_mock_term_from_path(unquoted_path)
-      rel_payload = base_term_data.get("relations", {}).get(rel, [])
-      if rel == "graph":
-        return copy.deepcopy(rel_payload) if isinstance(rel_payload, dict) else {"nodes": [], "edges": []}
-      return {
-          "_embedded": {"terms": copy.deepcopy(rel_payload)},
-          "page": {
-              "size": len(rel_payload),
-              "totalElements": len(rel_payload),
-              "totalPages": 1,
-              "number": 0,
-          },
-      }
-
-  if "/terms/roots" in unquoted_path or "/terms/preferredRoots" in unquoted_path:
-    onto_data = copy.deepcopy(load_mock_data("ontology_go.json"))
-    roots = onto_data.get("roots", [])
-    return {
-        "_embedded": {"terms": roots},
-        "page": {
-            "size": len(roots),
-            "totalElements": len(roots),
-            "totalPages": 1,
-            "number": 0,
-        },
-    }
-
-  if "/terms/" in unquoted_path:
-    return _resolve_mock_term_from_path(unquoted_path)
-
-  if "/properties/" in unquoted_path:
-    for prop_rel in ("parents", "children", "ancestors", "descendants"):
-      if unquoted_path.endswith(f"/{prop_rel}"):
-        return {
-            "_embedded": {
-                "properties": [
-                    {
-                        "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
-                        "obo_id": "BFO:0000050",
-                        "short_form": "BFO_0000050",
-                        "label": "part_of",
-                        "ontology_name": "ro",
-                        "ontology_prefix": "RO",
-                        "description": ["A core relation that holds between a part and its whole."],
-                    }
-                ]
-            },
-            "page": {"size": 1, "totalElements": 1, "totalPages": 1, "number": 0},
-        }
-    return {
-        "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
-        "obo_id": "BFO:0000050",
-        "short_form": "BFO_0000050",
-        "label": "part_of",
-        "ontology_name": "ro",
-        "ontology_prefix": "RO",
-        "description": ["A core relation that holds between a part and its whole."],
-        "synonyms": ["part of"],
-        "is_obsolete": false_bool(),
-        "is_root": True,
-    }
-
-  if "/individuals/" in unquoted_path:
-    for ind_rel in ("types", "alltypes", "jstree"):
-      if unquoted_path.endswith(f"/{ind_rel}"):
-        return {
-            "_embedded": {
-                "terms": [
-                    {
-                        "iri": "http://purl.obolibrary.org/obo/GO_0005634",
-                        "obo_id": "GO:0005634",
-                        "label": "nucleus",
-                        "ontology_name": "go",
-                    }
-                ]
-            },
-            "page": {"size": 1, "totalElements": 1, "totalPages": 1, "number": 0},
-        }
-    return {
-        "iri": "http://purl.obolibrary.org/obo/RO_0001901",
-        "obo_id": "RO:0001901",
-        "short_form": "RO_0001901",
-        "label": "allen_brain_atlas_reference_individual",
-        "ontology_name": "ro",
-        "ontology_prefix": "RO",
-        "description": ["Synthetic reference individual instance for offline validation."],
-        "type": "individual",
-        "is_obsolete": False,
-    }
-
-  if path.endswith("/ontologies"):
-    onto_go = copy.deepcopy(load_mock_data("ontology_go.json"))
-    return {
-        "_embedded": {"ontologies": [onto_go]},
-        "page": {"size": 1, "totalElements": 1, "totalPages": 1, "number": 0},
-    }
-
-  if "/ontologies/" in unquoted_path:
-    onto_go = copy.deepcopy(load_mock_data("ontology_go.json"))
-    slug = unquoted_path.rsplit("/ontologies/", 1)[-1].split("/")[0].lower()
-    if slug and slug != "go":
-      onto_go["ontologyId"] = slug
-      onto_go["config"]["namespace"] = slug
-      onto_go["config"]["preferredPrefix"] = slug.upper()
-      onto_go["config"]["title"] = f"{slug.upper()} Ontology"
-    return onto_go
-
-  return copy.deepcopy(load_mock_data("go_0005634_nucleus.json"))
-
-
-def false_bool() -> bool:
-  return False
-
-
-def _resolve_mock_term_from_path(unquoted_path: str) -> dict[str, Any]:
-  """Selects the matching term fixture based on an unquoted URL path."""
-  upper_path = unquoted_path.upper()
-  if "DOID_9351" in upper_path or "DOID:9351" in upper_path:
-    return copy.deepcopy(load_mock_data("doid_9351_diabetes.json"))
-  if "GO_0006915" in upper_path or "GO:0006915" in upper_path:
-    return copy.deepcopy(load_mock_data("go_0006915_apoptosis.json"))
-  return copy.deepcopy(load_mock_data("go_0005634_nucleus.json"))
+def _http_get(request_url: str, headers: dict[str, str]) -> dict[str, Any]:
+  """Performs a single HTTP GET against the live API and parses JSON."""
+  if HAS_POLITE_HTTP and hasattr(polite_http, "get_json"):
+    return polite_http.get_json(  # type: ignore[no-any-return]
+        request_url, headers=headers, timeout=DEFAULT_TIMEOUT_SECONDS
+    )
+  req = urllib.request.Request(request_url, headers=headers, method="GET")
+  with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT_SECONDS) as resp:
+    raw_bytes = resp.read()
+    return json.loads(raw_bytes.decode("utf-8"))
 
 
 def make_request(
     url: str,
     params: dict[str, Any] | None = None,
-    mock: bool = False,
-    fixture_key: str | None = None,
 ) -> dict[str, Any]:
-  """Executes a rate-limited HTTP GET request or returns offline mock data.
+  """Executes a rate-limited, retried HTTP GET request against the OLS4 API.
 
   Args:
     url: Full URL or relative path under `BASE_URL`.
     params: Optional query string parameters.
-    mock: If True, bypasses network calls and loads from `sample_data/`.
-    fixture_key: Optional explicit fixture identifier for mock mode.
 
   Returns:
     Parsed JSON response dictionary.
@@ -570,9 +365,6 @@ def make_request(
     full_url = f"{BASE_URL}/{url.lstrip('/')}"
   else:
     full_url = url
-
-  if mock:
-    return _dispatch_mock_request(full_url, params=params, fixture_key=fixture_key)
 
   clean_params: dict[str, Any] = {}
   if params:
@@ -599,14 +391,7 @@ def make_request(
   for attempt in range(1, MAX_RETRIES + 1):
     _enforce_rate_limit()
     try:
-      if HAS_POLITE_HTTP and hasattr(polite_http, "get_json"):
-        return polite_http.get_json(  # type: ignore[no-any-return]
-            request_url, headers=headers, timeout=DEFAULT_TIMEOUT_SECONDS
-        )
-      req = urllib.request.Request(request_url, headers=headers, method="GET")
-      with urllib.request.urlopen(req, timeout=DEFAULT_TIMEOUT_SECONDS) as resp:
-        raw_bytes = resp.read()
-        return json.loads(raw_bytes.decode("utf-8"))
+      return _http_get(request_url, headers)
     except urllib.error.HTTPError as exc:
       last_error = exc
       status = exc.code
@@ -642,10 +427,11 @@ def make_request(
         continue
       raise RuntimeError(
           f"Failed to query OLS4 API at '{request_url}' after {MAX_RETRIES} attempts: {exc}. "
-          "Pass --mock for offline execution."
+          "Check network access to the EMBL-EBI OLS4 API."
       ) from exc
 
   raise RuntimeError(f"Request failed for '{request_url}': {last_error}")
+
 
 
 def extract_embedded_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:

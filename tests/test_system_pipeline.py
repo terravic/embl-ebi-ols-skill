@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -25,7 +26,17 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
   sys.path.insert(0, str(SCRIPTS_DIR))
 
+import generate_dashboard  # pylint: disable=wrong-import-position
 import run_pipeline  # pylint: disable=wrong-import-position
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fake_ols_api import patch_ols_api  # pylint: disable=wrong-import-position,import-error
+
+
+def _embedded_payload(html_text: str) -> dict:
+  start = html_text.index("window.__OLS_DATA__ = ") + len("window.__OLS_DATA__ = ")
+  end = html_text.index(";\n  </script>", start)
+  return json.loads(html_text[start:end].replace("<\\/", "</"))
 
 APACHE_HEADER_PREFIX = (
     '# Licensed under the Apache License, Version 2.0 (the "License");'
@@ -35,10 +46,15 @@ APACHE_HEADER_PREFIX = (
 class TestSystemPipeline(unittest.TestCase):
   """Tests end-to-end pipeline workflows, HTML dashboard outputs, and license guards."""
 
-  def test_pipeline_obo_id_nucleus_mock(self) -> None:
+  def setUp(self) -> None:
+    self.patcher, self.api = patch_ols_api()
+    self.patcher.start()
+    self.addCleanup(self.patcher.stop)
+
+  def test_pipeline_obo_id_nucleus(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
       rc = run_pipeline.main(
-          ["--obo_id", "GO:0005634", "--mock", "-o", tmpdir]
+          ["--obo_id", "GO:0005634", "-o", tmpdir]
       )
       self.assertEqual(rc, 0)
       out = Path(tmpdir)
@@ -104,7 +120,7 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertIn("Jupp, S.", html_content)
       self.assertIn("clinical diagnostic or medical treatment decisions", html_content)
 
-  def test_pipeline_disease_doid_9351_mock(self) -> None:
+  def test_pipeline_disease_doid_9351(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
       rc = run_pipeline.main(
           [
@@ -112,7 +128,6 @@ class TestSystemPipeline(unittest.TestCase):
               "DOID:9351",
               "--relations",
               "parents,children,ancestors",
-              "--mock",
               "-o",
               tmpdir,
           ]
@@ -124,10 +139,10 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertEqual(graph_data["target_term"]["id"], "DOID:9351")
       self.assertEqual(graph_data["target_term"]["label"], "diabetes mellitus")
 
-  def test_pipeline_keyword_query_apoptosis_mock(self) -> None:
+  def test_pipeline_keyword_query_apoptosis(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
       rc = run_pipeline.main(
-          ["--query", "apoptosis", "--ontology", "go", "--mock", "-o", tmpdir]
+          ["--query", "apoptosis", "--ontology", "go", "-o", tmpdir]
       )
       self.assertEqual(rc, 0)
       out = Path(tmpdir)
@@ -137,10 +152,10 @@ class TestSystemPipeline(unittest.TestCase):
       )
       self.assertEqual(graph_data["target_term"]["id"], "GO:0006915")
 
-  def test_pipeline_ontology_overview_and_stats_mock(self) -> None:
+  def test_pipeline_ontology_overview_and_stats(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
       rc = run_pipeline.main(
-          ["--ontology", "go", "--stats", "--mock", "-o", tmpdir]
+          ["--ontology", "go", "--stats", "-o", tmpdir]
       )
       self.assertEqual(rc, 0)
       out = Path(tmpdir)
@@ -150,27 +165,79 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertTrue((out / "dashboard.html").is_file())
 
   def test_subprocess_cli_execution(self) -> None:
+    for script_base in (
+        SCRIPTS_DIR,
+        PROJECT_ROOT / "skills" / "embl_ebi_ols_visualize" / "scripts",
+    ):
+      if not script_base.is_dir():
+        continue
+      script = str(script_base / "run_pipeline.py")
+      proc = subprocess.run(
+          [sys.executable, script, "--help"], capture_output=True, text=True, check=False
+      )
+      self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+      self.assertNotIn("--mock", proc.stdout)
+      proc = subprocess.run(
+          [sys.executable, script, "--obo_id", "GO:0005634", "--mock", "-o", "unused"],
+          capture_output=True, text=True, check=False,
+      )
+      self.assertNotEqual(proc.returncode, 0)
+
+  def test_examples_are_isolated_from_live_data(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
-      for script_base in (
-          SCRIPTS_DIR,
-          PROJECT_ROOT / "skills" / "embl_ebi_ols_visualize" / "scripts",
-      ):
-        if not script_base.is_dir():
-          continue
-        sub_out = Path(tmpdir) / script_base.parent.name
-        cmd = [
-            sys.executable,
-            str(script_base / "run_pipeline.py"),
-            "--obo_id",
-            "GO:0005634",
-            "--mock",
-            "-o",
-            str(sub_out),
-        ]
-        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
-        self.assertIn("GO:0005634", proc.stdout)
-        self.assertTrue((sub_out / "dashboard.html").is_file())
+      rc = run_pipeline.main(["--obo_id", "DOID:9351", "-o", tmpdir])
+      self.assertEqual(rc, 0)
+      payload = _embedded_payload(
+          (Path(tmpdir) / "dashboard.html").read_text(encoding="utf-8")
+      )
+    self.assertEqual(payload["source"], "live")
+    self.assertNotIn("presets", payload)
+    # No ontology/stats were fetched, so nothing is back-filled from examples.
+    self.assertIsNone(payload["ontology_profile"])
+    self.assertIsNone(payload["repository_stats"])
+    self.assertEqual(payload["target_term"]["id"], "DOID:9351")
+    self.assertEqual(sorted(payload["examples"]), ["GO:0005634", "GO:0006915"])
+    for ex in payload["examples"].values():
+      self.assertEqual(ex["source"], "example")
+      self.assertIsNone(ex["repository_stats"])
+      self.assertEqual(ex["ontology_profile"]["ontology_id"], "go")
+
+  def test_dashboard_without_inputs_is_not_backfilled(self) -> None:
+    term = json.loads(
+        (PROJECT_ROOT / "sample_data" / "doid_9351_diabetes.json").read_text(encoding="utf-8")
+    )
+    data = generate_dashboard.assemble_dashboard_data(term_data=term)
+    self.assertIsNone(data["ontology_profile"])
+    self.assertIsNone(data["repository_stats"])
+    self.assertNotIn("DOID:9351", data["examples"])
+
+  def test_ontology_only_run_has_no_invented_term(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      rc = run_pipeline.main(["--ontology", "go", "-o", tmpdir])
+      self.assertEqual(rc, 0)
+      payload = _embedded_payload(
+          (Path(tmpdir) / "dashboard.html").read_text(encoding="utf-8")
+      )
+    self.assertIsNone(payload["target_term"])
+    self.assertEqual(payload["nodes"], [])
+    self.assertEqual(payload["ontology_profile"]["ontology_id"], "go")
+
+  @unittest.skipUnless(
+      os.environ.get("OLS4_LIVE_TESTS") == "1", "set OLS4_LIVE_TESTS=1 to query the live API"
+  )
+  def test_live_pipeline_against_ols4(self) -> None:
+    self.patcher.stop()
+    self.addCleanup(self.patcher.start)
+    with tempfile.TemporaryDirectory() as tmpdir:
+      rc = run_pipeline.main(["--obo_id", "GO:0005634", "--stats", "-o", tmpdir])
+      self.assertEqual(rc, 0)
+      payload = _embedded_payload(
+          (Path(tmpdir) / "dashboard.html").read_text(encoding="utf-8")
+      )
+    self.assertEqual(payload["target_term"]["id"], "GO:0005634")
+    self.assertGreater(payload["repository_stats"]["number_of_ontologies"], 264)
+    self.assertEqual(payload["processing_summary"]["unconnected_nodes"], 0)
+    self.assertTrue(any(p[0].startswith("BFO:") for p in payload["root_paths"]))
 
   def test_apache_headers_and_licenses(self) -> None:
     script_dirs = [SCRIPTS_DIR]

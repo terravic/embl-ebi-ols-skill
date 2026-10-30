@@ -19,6 +19,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
@@ -29,7 +30,7 @@ import ols_utils  # pylint: disable=wrong-import-position
 
 
 class TestOlsUtilsUnit(unittest.TestCase):
-  """Tests IRI conversion, double encoding, prefix resolution, license guard, and mock engine."""
+  """Tests IRI conversion, double encoding, prefix resolution, license guard, and transport."""
 
   def test_obo_id_to_iri_and_normalization(self) -> None:
     self.assertEqual(
@@ -102,21 +103,34 @@ class TestOlsUtilsUnit(unittest.TestCase):
     elapsed = time.monotonic() - t0
     self.assertGreaterEqual(elapsed, ols_utils.RATE_LIMIT_DELAY * 0.85)
 
-  def test_load_mock_data_and_dispatch(self) -> None:
-    nucleus = ols_utils.load_mock_data("GO:0005634")
+  def test_load_example_data(self) -> None:
+    nucleus = ols_utils.load_example_data("go_0005634_nucleus.json")
     self.assertEqual(nucleus["obo_id"], "GO:0005634")
     self.assertEqual(nucleus["label"], "nucleus")
 
-    diabetes = ols_utils.load_mock_data("DOID:9351")
+    diabetes = ols_utils.load_example_data("doid_9351_diabetes.json")
     self.assertEqual(diabetes["obo_id"], "DOID:9351")
-    self.assertEqual(diabetes["label"], "diabetes mellitus")
-
-    stats = ols_utils.make_request(f"{ols_utils.BASE_URL}/v2/stats", mock=True)
-    self.assertGreater(stats["numberOfOntologies"], 200)
 
     with self.assertRaises(FileNotFoundError):
-      ols_utils.load_mock_data("non_existent_fixture_xyz.json")
+      ols_utils.load_example_data("non_existent_file_xyz.json")
 
+  def test_no_offline_mock_engine_in_production_code(self) -> None:
+    self.assertFalse(hasattr(ols_utils, "_dispatch_mock_request"))
+    self.assertFalse(hasattr(ols_utils, "load_mock_data"))
+    self.assertNotIn("mock", ols_utils.make_request.__code__.co_varnames)
+
+  def test_make_request_uses_live_transport(self) -> None:
+    calls = []
+
+    def fake_get(url, headers):
+      calls.append(url)
+      return {"numberOfOntologies": 1}
+
+    with mock.patch.object(ols_utils, "_http_get", side_effect=fake_get), \
+         mock.patch.object(ols_utils, "RATE_LIMIT_DELAY", 0.0):
+      result = ols_utils.make_request("v2/stats", params={"a": True})
+    self.assertEqual(result, {"numberOfOntologies": 1})
+    self.assertEqual(calls, [f"{ols_utils.BASE_URL}/v2/stats?a=true"])
 
 if __name__ == "__main__":
   unittest.main()

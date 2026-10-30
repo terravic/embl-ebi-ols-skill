@@ -437,30 +437,130 @@
     ],
     "graph": {
       "nodes": [
-        {"iri": "http://purl.obolibrary.org/obo/DOID_4", "obo_id": "DOID:4", "label": "disease", "is_root": true},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_0014667", "obo_id": "DOID:0014667", "label": "disease of metabolism"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_7", "obo_id": "DOID:7", "label": "disease of anatomical entity"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_4195", "obo_id": "DOID:4195", "label": "carbohydrate metabolism disease"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_28", "obo_id": "DOID:28", "label": "endocrine system disease"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_4194", "obo_id": "DOID:4194", "label": "glucose metabolism disease"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_9351", "obo_id": "DOID:9351", "label": "diabetes mellitus"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_9744", "obo_id": "DOID:9744", "label": "type 1 diabetes mellitus"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_9352", "obo_id": "DOID:9352", "label": "type 2 diabetes mellitus"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_11714", "obo_id": "DOID:11714", "label": "gestational diabetes"},
-        {"iri": "http://purl.obolibrary.org/obo/DOID_11716", "obo_id": "DOID:11716", "label": "prediabetes syndrome"}
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_4",
+          "obo_id": "DOID:4",
+          "label": "disease",
+          "is_root": true
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_0014667",
+          "obo_id": "DOID:0014667",
+          "label": "disease of metabolism"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_7",
+          "obo_id": "DOID:7",
+          "label": "disease of anatomical entity"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_4195",
+          "obo_id": "DOID:4195",
+          "label": "carbohydrate metabolism disease"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_28",
+          "obo_id": "DOID:28",
+          "label": "endocrine system disease"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_4194",
+          "obo_id": "DOID:4194",
+          "label": "glucose metabolism disease"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_9351",
+          "obo_id": "DOID:9351",
+          "label": "diabetes mellitus"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_9744",
+          "obo_id": "DOID:9744",
+          "label": "type 1 diabetes mellitus"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_9352",
+          "obo_id": "DOID:9352",
+          "label": "type 2 diabetes mellitus"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_11714",
+          "obo_id": "DOID:11714",
+          "label": "gestational diabetes"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/DOID_11716",
+          "obo_id": "DOID:11716",
+          "label": "prediabetes syndrome"
+        }
       ],
       "edges": [
-        {"source": "http://purl.obolibrary.org/obo/DOID_4", "target": "http://purl.obolibrary.org/obo/DOID_0014667", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_4", "target": "http://purl.obolibrary.org/obo/DOID_7", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_0014667", "target": "http://purl.obolibrary.org/obo/DOID_4195", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_7", "target": "http://purl.obolibrary.org/obo/DOID_28", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_4195", "target": "http://purl.obolibrary.org/obo/DOID_4194", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_4194", "target": "http://purl.obolibrary.org/obo/DOID_9351", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_28", "target": "http://purl.obolibrary.org/obo/DOID_9351", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_9744", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_9352", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_11714", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/DOID_9351", "target": "http://purl.obolibrary.org/obo/DOID_11716", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"}
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_0014667",
+          "target": "http://purl.obolibrary.org/obo/DOID_4",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_7",
+          "target": "http://purl.obolibrary.org/obo/DOID_4",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_4195",
+          "target": "http://purl.obolibrary.org/obo/DOID_0014667",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_28",
+          "target": "http://purl.obolibrary.org/obo/DOID_7",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_4194",
+          "target": "http://purl.obolibrary.org/obo/DOID_4195",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_9351",
+          "target": "http://purl.obolibrary.org/obo/DOID_4194",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_9351",
+          "target": "http://purl.obolibrary.org/obo/DOID_28",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_9744",
+          "target": "http://purl.obolibrary.org/obo/DOID_9351",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_9352",
+          "target": "http://purl.obolibrary.org/obo/DOID_9351",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_11714",
+          "target": "http://purl.obolibrary.org/obo/DOID_9351",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/DOID_11716",
+          "target": "http://purl.obolibrary.org/obo/DOID_9351",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        }
       ]
     }
   }

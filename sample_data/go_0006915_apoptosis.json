@@ -317,27 +317,113 @@
     ],
     "graph": {
       "nodes": [
-        {"iri": "http://purl.obolibrary.org/obo/GO_0008150", "obo_id": "GO:0008150", "label": "biological_process", "is_root": true},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0009987", "obo_id": "GO:0009987", "label": "cellular process"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0008219", "obo_id": "GO:0008219", "label": "cell death"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0012501", "obo_id": "GO:0012501", "label": "programmed cell death"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0006915", "obo_id": "GO:0006915", "label": "apoptotic process"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_1904019", "obo_id": "GO:1904019", "label": "epithelial cell apoptotic process"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0051402", "obo_id": "GO:0051402", "label": "neuron apoptotic process"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0097190", "obo_id": "GO:0097190", "label": "apoptotic signaling pathway"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0097194", "obo_id": "GO:0097194", "label": "execution phase of apoptosis"},
-        {"iri": "http://purl.obolibrary.org/obo/GO_0042981", "obo_id": "GO:0042981", "label": "regulation of apoptotic process"}
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0008150",
+          "obo_id": "GO:0008150",
+          "label": "biological_process",
+          "is_root": true
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0009987",
+          "obo_id": "GO:0009987",
+          "label": "cellular process"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0008219",
+          "obo_id": "GO:0008219",
+          "label": "cell death"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0012501",
+          "obo_id": "GO:0012501",
+          "label": "programmed cell death"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0006915",
+          "obo_id": "GO:0006915",
+          "label": "apoptotic process"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_1904019",
+          "obo_id": "GO:1904019",
+          "label": "epithelial cell apoptotic process"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0051402",
+          "obo_id": "GO:0051402",
+          "label": "neuron apoptotic process"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0097190",
+          "obo_id": "GO:0097190",
+          "label": "apoptotic signaling pathway"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0097194",
+          "obo_id": "GO:0097194",
+          "label": "execution phase of apoptosis"
+        },
+        {
+          "iri": "http://purl.obolibrary.org/obo/GO_0042981",
+          "obo_id": "GO:0042981",
+          "label": "regulation of apoptotic process"
+        }
       ],
       "edges": [
-        {"source": "http://purl.obolibrary.org/obo/GO_0008150", "target": "http://purl.obolibrary.org/obo/GO_0009987", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0009987", "target": "http://purl.obolibrary.org/obo/GO_0008219", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0008219", "target": "http://purl.obolibrary.org/obo/GO_0012501", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0012501", "target": "http://purl.obolibrary.org/obo/GO_0006915", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_1904019", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0051402", "label": "subClassOf", "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0097190", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0097194", "label": "part_of", "uri": "http://purl.obolibrary.org/obo/BFO_0000050"},
-        {"source": "http://purl.obolibrary.org/obo/GO_0006915", "target": "http://purl.obolibrary.org/obo/GO_0042981", "label": "regulates", "uri": "http://purl.obolibrary.org/obo/RO_0002211"}
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0009987",
+          "target": "http://purl.obolibrary.org/obo/GO_0008150",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0008219",
+          "target": "http://purl.obolibrary.org/obo/GO_0009987",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0012501",
+          "target": "http://purl.obolibrary.org/obo/GO_0008219",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0006915",
+          "target": "http://purl.obolibrary.org/obo/GO_0012501",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_1904019",
+          "target": "http://purl.obolibrary.org/obo/GO_0006915",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0051402",
+          "target": "http://purl.obolibrary.org/obo/GO_0006915",
+          "label": "subClassOf",
+          "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0097190",
+          "target": "http://purl.obolibrary.org/obo/GO_0006915",
+          "label": "part_of",
+          "uri": "http://purl.obolibrary.org/obo/BFO_0000050"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0097194",
+          "target": "http://purl.obolibrary.org/obo/GO_0006915",
+          "label": "part_of",
+          "uri": "http://purl.obolibrary.org/obo/BFO_0000050"
+        },
+        {
+          "source": "http://purl.obolibrary.org/obo/GO_0042981",
+          "target": "http://purl.obolibrary.org/obo/GO_0006915",
+          "label": "regulates",
+          "uri": "http://purl.obolibrary.org/obo/RO_0002211"
+        }
       ]
     }
   }

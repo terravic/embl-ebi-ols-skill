@@ -32,7 +32,6 @@ def get_individual(
     iri: str | None = None,
     ontology: str | None = None,
     relations: str | list[str] | None = None,
-    mock: bool = False,
 ) -> dict[str, Any]:
   """Retrieves ontology individual instance metadata and class type relations.
 
@@ -41,7 +40,6 @@ def get_individual(
     iri: Full canonical IRI for the individual.
     ontology: Ontology slug.
     relations: Optional comma-separated individual relations (`types`, `alltypes`, `jstree`).
-    mock: If True, uses local synthetic mock data.
 
   Returns:
     Individual metadata dictionary with optional `relations` block.
@@ -54,7 +52,7 @@ def get_individual(
   encoded_iri = ols_utils.double_encode_iri(target_iri)
   base_url = f"{ols_utils.BASE_URL}/ontologies/{onto_slug}/individuals/{encoded_iri}"
 
-  ind_data = ols_utils.make_request(base_url, mock=mock)
+  ind_data = ols_utils.make_request(base_url)
 
   if relations:
     rel_list = (
@@ -70,7 +68,7 @@ def get_individual(
       )
     rel_block: dict[str, Any] = {}
     for rel in rel_list:
-      rel_resp = ols_utils.make_request(f"{base_url}/{rel}", mock=mock)
+      rel_resp = ols_utils.make_request(f"{base_url}/{rel}")
       rel_block[rel] = ols_utils.extract_embedded_list(rel_resp, "terms")
     ind_data["relations"] = rel_block
 
@@ -104,11 +102,6 @@ def build_parser() -> argparse.ArgumentParser:
       required=True,
       help="Output JSON file path.",
   )
-  parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Use local synthetic mock data without network calls.",
-  )
   return parser
 
 
@@ -122,7 +115,6 @@ def main(argv: list[str] | None = None) -> int:
         iri=args.iri,
         ontology=args.ontology,
         relations=args.relations,
-        mock=args.mock,
     )
     out_path = ols_utils.write_json_output(result, args.output)
     print(f"Individual payload saved to {out_path}.")

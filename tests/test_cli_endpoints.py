@@ -35,15 +35,23 @@ import suggest_ols  # pylint: disable=wrong-import-position
 import visualize_hierarchy  # pylint: disable=wrong-import-position
 import visualize_ontology  # pylint: disable=wrong-import-position
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fake_ols_api import patch_ols_api  # pylint: disable=wrong-import-position,import-error
+
 
 class TestCliEndpoints(unittest.TestCase):
-  """Tests all modular CLI scripts in `--mock` mode."""
+  """Tests all modular CLI scripts against recorded OLS4 API responses."""
+
+  def setUp(self) -> None:
+    self.patcher, self.api = patch_ols_api()
+    self.patcher.start()
+    self.addCleanup(self.patcher.stop)
 
   def test_search_and_suggest_cli(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
       search_out = Path(tmpdir) / "search.json"
       rc = search_ols.main(
-          ["--query", "diabetes", "--rows", "5", "--mock", "--output", str(search_out)]
+          ["--query", "diabetes", "--rows", "5", "--output", str(search_out)]
       )
       self.assertEqual(rc, 0)
       data = json.loads(search_out.read_text(encoding="utf-8"))
@@ -53,7 +61,7 @@ class TestCliEndpoints(unittest.TestCase):
 
       suggest_out = Path(tmpdir) / "suggest.json"
       rc_sug = suggest_ols.main(
-          ["--query", "diabet", "--rows", "5", "--mock", "--output", str(suggest_out)]
+          ["--query", "diabet", "--rows", "5", "--output", str(suggest_out)]
       )
       self.assertEqual(rc_sug, 0)
       sug_data = json.loads(suggest_out.read_text(encoding="utf-8"))
@@ -70,9 +78,8 @@ class TestCliEndpoints(unittest.TestCase):
               "--obo_id",
               "GO:0005634",
               "--relations",
-              "parents,children,ancestors,hierarchicalParents,hierarchicalChildren",
+              "parents,children,ancestors,hierarchicalParents,hierarchicalChildren,graph",
               "--summary",
-              "--mock",
               "--output",
               str(term_out),
           ]
@@ -93,38 +100,37 @@ class TestCliEndpoints(unittest.TestCase):
               "ro",
               "--relations",
               "parents,children",
-              "--mock",
               "--output",
               str(prop_out),
           ]
       )
       self.assertEqual(rc, 0)
       prop_json = json.loads(prop_out.read_text(encoding="utf-8"))
-      self.assertEqual(prop_json["label"], "part_of")
+      self.assertEqual(prop_json["label"], "part of")
 
       # 3. get_individual.py
       ind_out = tmp / "individual.json"
       rc = get_individual.main(
           [
               "--obo_id",
-              "RO:0001901",
+              "ENVO:01001571",
               "--ontology",
-              "ro",
+              "envo",
               "--relations",
               "types",
-              "--mock",
               "--output",
               str(ind_out),
           ]
       )
       self.assertEqual(rc, 0)
       ind_json = json.loads(ind_out.read_text(encoding="utf-8"))
-      self.assertEqual(ind_json["obo_id"], "RO:0001901")
+      self.assertEqual(ind_json["obo_id"], "ENVO:01001571")
+      self.assertEqual(ind_json["label"], "Australasia Ecoregion")
 
       # 4. get_ontology.py
       onto_out = tmp / "ontology.json"
       rc = get_ontology.main(
-          ["--ontology", "go", "--mock", "--output", str(onto_out)]
+          ["--ontology", "go", "--output", str(onto_out)]
       )
       self.assertEqual(rc, 0)
       onto_json = json.loads(onto_out.read_text(encoding="utf-8"))
@@ -132,7 +138,7 @@ class TestCliEndpoints(unittest.TestCase):
 
       # 5. get_stats.py
       stats_out = tmp / "stats.json"
-      rc = get_stats.main(["--mock", "--output", str(stats_out)])
+      rc = get_stats.main(["--output", str(stats_out)])
       self.assertEqual(rc, 0)
       stats_json = json.loads(stats_out.read_text(encoding="utf-8"))
       self.assertEqual(stats_json["numberOfOntologies"], 264)
@@ -180,6 +186,20 @@ class TestCliEndpoints(unittest.TestCase):
       self.assertIn("cdn.tailwindcss.com", html_text)
       self.assertIn("d3.min.js", html_text)
       self.assertIn("window.__OLS_DATA__", html_text)
+
+  def test_mock_flag_is_rejected(self) -> None:
+    for module in (search_ols, suggest_ols, get_term, get_property,
+                   get_individual, get_ontology, get_stats):
+      with self.assertRaises(SystemExit):
+        module.build_parser().parse_args(["--mock", "--output", "x.json"])
+
+  def test_unknown_term_fails_instead_of_substituting(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      rc = get_term.main(
+          ["--obo_id", "GO:9999999", "--output", str(Path(tmpdir) / "t.json")]
+      )
+      self.assertEqual(rc, 1)
+      self.assertFalse((Path(tmpdir) / "t.json").exists())
 
 
 if __name__ == "__main__":

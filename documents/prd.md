@@ -15,7 +15,7 @@
 
 The `embl-ebi-ols-visualize` skill is a biomedical ontology query, traversal, and visualization toolkit built for agentic workflows and command-line analysis. It provides programmatic access to the European Bioinformatics Institute (EMBL-EBI) Ontology Lookup Service (OLS4) across more than 250 biomedical ontologies--including the Gene Ontology (GO), Human Disease Ontology (DOID), Human Phenotype Ontology (HP), Mondo Disease Ontology (MONDO), Chemical Entities of Biological Interest (CHEBI), Cell Ontology (CL), Uber-anatomy Ontology (UBERON), Experimental Factor Ontology (EFO), and NCI Thesaurus (NCIT)--by pairing compliant REST API retrieval with an automated graph synthesis pipeline and a standalone HTML5 interactive dashboard (`dashboard.html`).
 
-Where raw REST API responses return deeply nested JSON structures that obscure multiple inheritance and transitive partonomic relationships, `embl-ebi-ols-visualize` normalizes ontology lineages into Directed Acyclic Graphs (DAGs) and collapsible hierarchical trees, visually distinguishes taxonomic (`subClassOf` / `is-a`) edges from transitive (`part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`) relationships using a standardized semantic color palette, tracks input-to-output data pipeline metrics, surfaces cross-database clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), supports incremental state updates via Server-Sent Events (SSE), and provides a deterministic offline mock mode (`--mock`) for isolated testing and validation.
+Where raw REST API responses return deeply nested JSON structures that obscure multiple inheritance and transitive partonomic relationships, `embl-ebi-ols-visualize` normalizes ontology lineages into Directed Acyclic Graphs (DAGs) and collapsible hierarchical trees, visually distinguishes taxonomic (`subClassOf` / `is-a`) edges from transitive (`part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`) relationships using a standardized semantic color palette, tracks input-to-output data pipeline metrics, surfaces cross-database clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), supports incremental state updates via Server-Sent Events (SSE), and displays only data returned by the live OLS4 API or contained in a user-uploaded file, with three clearly labelled bundled examples.
 
 ---
 
@@ -27,7 +27,7 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
 | :--- | :--- | :--- |
 | **Non-Technical Biomedical Researchers & Clinicians** | Translational scientists, geneticists, and disease curators who require visual exploration of ontology hierarchies, term definitions, synonyms, and clinical database mappings without writing code. | Natural language prompts inside an agent skill harness rendering the interactive `dashboard.html` output. |
 | **Technical Bioinformaticians & Ontology Engineers** | Computational biologists and data engineers integrating standardized ontology lookups, ancestor/descendant traversals, and corpus metrics into automated pipelines. | Direct command-line execution of `scripts/run_pipeline.py` and modular endpoint scripts (`get_term.py`, `search_ols.py`, `visualize_hierarchy.py`). |
-| **Agent Harness & Platform Engineers** | Systems engineers deploying and testing deterministic agent skills in sandboxed or continuous integration environments without external internet connectivity. | Automated test suites (`pytest`) and offline `--mock` execution against local synthetic fixtures. |
+| **Agent Harness & Platform Engineers** | Systems engineers deploying and testing agent skills in continuous integration environments. | Automated test suites (`pytest` / `unittest`) that replace the HTTP transport with recorded OLS4 responses; the skill itself always queries the live API. |
 
 ### 2.2 User Stories
 
@@ -37,7 +37,7 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
 | **US-02** | Disease Curator | As a disease ontology curator, I want to examine `DOID:9351` (diabetes mellitus), its multi-parent disease classifications, synonyms, and external cross-references (ICD-10, MeSH, OMIM, UMLS) in a single view. | Clicking any node in `dashboard.html` updates the Split-Pane Term Inspector displaying canonical label, OBO ID, definition, scoped synonyms (`EXACT`, `BROAD`, `NARROW`, `RELATED`), external xrefs, direct parents, and direct children. |
 | **US-03** | Translational Scientist | As a user who knows a biological concept keyword (e.g., `"apoptosis"`) rather than an OBO identifier, I want the skill to resolve the keyword to its canonical ontology term and build the hierarchy automatically. | Running `run_pipeline.py --query "apoptosis" --ontology go -o ./output/apoptosis/` resolves `"apoptosis"` to `GO:0006915`, fetches its hierarchical neighborhood, and generates `dashboard.html`. |
 | **US-04** | Ontology Engineer | As an ontology engineer evaluating repository coverage, I want to profile ontology metadata (version, class count, property count, root terms, license) alongside global OLS4 index statistics and inspect raw-to-normalized data pipeline metrics. | Running `run_pipeline.py --ontology go --stats -o ./output/go_overview/` aggregates `/ontologies/go` and `/v2/stats` metrics into the Corpus & Quantitative Metrics and Empirical Data Pipeline views. |
-| **US-05** | Platform Engineer | As an engineer running automated regression checks in an isolated sandbox without network access, I want every CLI tool and pipeline workflow to operate deterministically using local mock fixtures. | Passing `--mock` to any script returns structured responses from `sample_data/` with zero external HTTP calls and exits with status code `0`. |
+| **US-05** | Platform Engineer | As an engineer running automated regression checks, I want the test suite to run without network access while the shipped skill only ever shows real OLS4 data. | `python3 -m unittest discover -s tests` passes offline by patching `ols_utils._http_get` with `tests/fake_ols_api.py`; production scripts reject `--mock`, and an unreachable API produces an error (exit `1`) rather than substitute data. |
 | **US-06** | Compliance Officer | As a governance reviewer, I want the skill to verify workspace license notices before running queries and include academic citations and scientific disclaimers in all outputs. | `.licenses/embl_ebi_ols_visualize_LICENSE.txt` is verified or created prior to execution, and every generated dashboard and CLI summary includes McLaughlin et al. (2025) and Jupp et al. (2015) citations plus the scientific disclaimer. |
 
 ### 2.3 Scope Definition
@@ -49,7 +49,9 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
 4. **Ontology Corpus & Statistics Profiler**: Aggregation of ontology metadata, root class distributions, and repository-wide statistics (`visualize_ontology.py`).
 5. **Standalone HTML5 Interactive Dashboard (`DESIGN.md` Compliant)**: Generation of a self-contained `dashboard.html` file (`generate_dashboard.py`) implementing the `DESIGN.md` visual hierarchy, typography (`DM Sans`, `Instrument Serif`, `IBM Plex Mono` with `tabular-nums`), single-level bento grid layout, three-icon theme switcher (`#theme-btn-light`, `#theme-btn-dark`, `#theme-btn-system`) with OS appearance tracking and `system_theme` fallback, semantic visualization palette (`#0D9488`, `#D97706`, `#4F46E5`, `#059669`, `#E11D48`), five synchronized views (`Structural Data Diagram`, `Interactive Relationship Node Map`, `Taxonomic Lineage Tree`, `Empirical Data Pipeline`, `Corpus & Quantitative Metrics`), client-side JSON loading, live SSE incremental state updates, interactive term inspector drawer, and academic attribution footer.
 6. **Unified Pipeline Orchestrator**: Single-command orchestration from keyword or OBO ID input to normalized JSON datasets and `dashboard.html` output (`run_pipeline.py`).
-7. **Deterministic Offline Mock Engine**: Full offline execution across all scripts via `--mock` backed by `sample_data/` fixtures.
+7. **Live-Data Integrity**: All displayed values come from the live OLS4 API or a user-uploaded file. Missing values stay empty, lineage edges come only from OLS4 (`/graph`, `/parents`, `/hierarchicalParents`, and each ancestor's parents via `--lineage`), and no placeholder terms, roots, or metadata are generated.
+8. **Isolated Example Datasets**: Three bundled terms in `sample_data/` (`GO:0005634`, `DOID:9351`, `GO:0006915`) appear in the dashboard's **Examples** group, tagged `source: "example"`. They never contribute data to live or uploaded datasets.
+9. **In-Browser Upload Processing**: `Load JSON` accepts a raw OLS4 `term.json` or a processed `hierarchy_graph.json` and builds the graph, depths, relation counts, root paths, and trees from that file alone, using the same rules as `visualize_hierarchy.py`.
 
 #### Out-of-Scope Capabilities
 1. **Ontology Authoring or OWL Reasoning**: Modifying upstream ontologies, running Description Logic (DL) reasoners (e.g., ELK, HermiT) locally on raw `.owl` or `.obo` files, or submitting write/mutation requests to EMBL-EBI servers.
@@ -94,18 +96,18 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
                             |                             |
                             v                             |
 +-------------------------------------------------------+ |
-| SHARED TRANSPORT & MOCK ENGINE (scripts/ols_utils.py) | |
+| SHARED TRANSPORT (scripts/ols_utils.py)               | |
 | - OBO Prefix Resolution & Canonical IRI Mapper        | |
 | - Double URL-Encoder (http%253A%252F%252F...)         | |
 | - 5.0 QPS Rate Limiter (0.2s spacing + backoff)       | |
 | - polite-http client with urllib.request fallback     | |
-+-------------+-----------------------------------+-----+ |
-              | (--mock=False)                    | (--mock=True)
-              v                                   v       |
-+---------------------------+   +-----------------------+ |
-| EMBL-EBI OLS4 REST API    |   | LOCAL SYNTHETIC DATA  | |
-| https://www.ebi.ac.uk/    |   | (sample_data/*.json)  | |
-| ols4/api                  |   +-----------------------+ |
++-------------+-----------------------------------------+ |
+              |                                           |
+              v                                           |
++---------------------------+                             |
+| EMBL-EBI OLS4 REST API    |                             |
+| https://www.ebi.ac.uk/    |                             |
+| ols4/api                  |                             |
 +---------------------------+                             |
                                                           v
 +-----------------------------------------------------------------------------------+
@@ -183,7 +185,7 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 | `--childrenOf`, `--allChildrenOf` | `search_ols.py` | String (IRI or OBO ID) | Restricts search results to direct or transitive children of a specified parent term. |
 | `--rows`, `--start` | `search_ols.py`, `suggest_ols.py`, `get_ontology.py` | Integer (`rows >= 1`, `start >= 0`) | Pagination controls for paged HAL endpoints. |
 | `--stats` | `run_pipeline.py` | Boolean flag | Fetches `/ontologies/{id}` and `/v2/stats` to include repository-wide and ontology-level statistical charts in the dashboard. |
-| `--mock` | All CLI scripts | Boolean flag | Intercepts network requests and serves deterministic synthetic payloads from `sample_data/`. |
+| `--lineage` | `get_term.py` (always on in `run_pipeline.py`) | Boolean flag | Also fetches `/parents` and `/hierarchicalParents` for every ancestor so the full root-to-term lineage is connected by real OLS4 edges. |
 | `--output` / `-o` / `--output_dir` | All CLI scripts | File or Directory Path | Destination relative or local file path (individual scripts) or directory path (`run_pipeline.py`) for generated outputs. |
 
 ### 4.2 Processing Stages
@@ -252,7 +254,7 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 ### 5.1 Performance & Latency
 - **Rate Limiting**: Outgoing live HTTP calls must never exceed 5.0 requests per second (`RATE_LIMIT_DELAY = 0.2` seconds).
 - **Resilience & Retries**: Transient HTTP `429 Too Many Requests`, `500`, `502`, `503`, and `504` responses must trigger exponential backoff retries (up to 3 attempts, base delay `1.0s`, multiplier `2.0x`).
-- **Offline Execution Speed**: Full end-to-end execution of `run_pipeline.py --mock` must complete in under 2.0 seconds on standard workstation hardware.
+- **Test Suite Speed**: The offline test suite (transport patched with recorded responses) must complete in under 5 seconds on standard workstation hardware.
 - **Client Rendering**: `dashboard.html` must initialize and render graphs of up to 500 nodes and 1,000 edges smoothly in standard HTML5 browsers and embedded webviews.
 
 ### 5.2 Security & Environment Independence
@@ -261,7 +263,7 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 - **Standard Library Runtime**: Relies strictly on Python >= 3.10 standard library (`urllib`, `json`, `argparse`, `pathlib`, `time`, `logging`) with optional support for `polite-http`.
 
 ### 5.3 Healthcare & Life Sciences (HCLS) Compliance
-- **Zero PHI/PII Mandate**: All sample data, test fixtures, and generated outputs contain exclusively public biomedical ontology concepts (e.g., cellular components, disease classifications) and synthetic test payloads. No patient records, clinical identifiers, or personally identifiable information are processed or stored.
+- **Zero PHI/PII Mandate**: All example data, test fixtures, and generated outputs contain exclusively public biomedical ontology concepts (e.g., cellular components, disease classifications). No patient records, clinical identifiers, or personally identifiable information are processed or stored.
 - **Scientific & Clinical Disclaimer**: Every CLI summary and `dashboard.html` file displays the mandatory disclaimer stating that ontology classifications, hierarchical structures, and cross-references reflect curated biomedical models and automated inferences from participating consortiums, and must be independently verified for clinical diagnostic or medical treatment decisions.
 - **Attribution & Licensing**: Upholds Apache License 2.0 across all source files, preserves upstream ontology license metadata (e.g., CC BY 4.0, CC0), enforces the `.licenses/` verification guard, and cites McLaughlin et al. (2025) and Jupp et al. (2015).
 
@@ -277,8 +279,11 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 | **Empty Search Results for `--query`** | `search_ols.py` / `run_pipeline.py` checks `response.docs` length. | If `--exact` returns 0 hits in `run_pipeline.py`, retries automatically with non-exact search; if still 0 hits, writes an empty/diagnostic summary and exits with an informative error message. | `1` |
 | **Multiple Inheritance (Diamond DAGs)** | `visualize_hierarchy.py` tracks ancestor/child edges per path during tree construction. | Preserves full multi-parent connections in the `nodes`/`edges` DAG structure and clones shared child nodes along distinct parent branches (bounded by max depth and visited-on-path cycle detection) for the collapsible tree view. | `0` |
 | **Cyclic Relations in Non-Strict Ontologies** | Path-level `visited` set during DFS tree construction and BFS depth assignment. | Terminates recursive expansion on the back-edge, preventing infinite recursion while retaining the edge in the node-link graph representation. | `0` |
-| **Deprecated / Obsolete Term Queried** | Checks `is_obsolete: true` in term JSON. | Renders an `OBSOLETE / DEPRECATED` status indicator (`#E11D48`) in the dashboard header and inspector panel, and displays `term_replaced_by` or `consider` annotations if present. | `0` |
+| **Deprecated / Obsolete Term Queried** | Checks `is_obsolete: true` in term JSON. | Renders an `Obsolete` status indicator (`#E11D48`) in the dashboard header and inspector panel, and displays `term_replaced_by` or `consider` annotations if present. | `0` |
 | **HTTP 429 / 503 Transient API Errors** | HTTP status code inspection in `ols_utils.make_request()`. | Applies exponential backoff (`1s`, `2s`, `4s`) honoring `Retry-After` headers when provided; raises `RuntimeError` with status and URL context if retries are exhausted. | `1` |
-| **Network Disabled / Offline Sandbox** | User passes `--mock` flag (or network unreachable in live mode). | In `--mock` mode, routes all requests to `sample_data/*.json` with zero network sockets opened. In live mode, catches `URLError` and suggests running with `--mock` for offline environments. | `0` (`--mock`) / `1` (live error) |
+| **Network Unreachable** | `URLError` / timeout in `ols_utils.make_request()`. | Retries with backoff, then raises `RuntimeError` asking the user to check network access. No substitute or cached data is shown. | `1` |
+| **Unknown Term / HTTP 404** | HTTP status in `ols_utils.make_request()`. | Raises `RuntimeError` with the URL; no other term is substituted. | `1` |
+| **Ancestors Without Connecting Edges** | `visualize_hierarchy.py` finds fetched terms that no OLS4 edge connects. | Leaves them out of the graph and reports the count in `processing_summary.unconnected_nodes`; no lineage is inferred. | `0` |
+| **Missing Metadata (license, version, synonym scope, relation type)** | Field absent from the OLS4 response or uploaded file. | Field is left empty and the corresponding dashboard row/badge is hidden; untyped hierarchical links are labelled `hierarchical`. | `0` |
 | **Corrupted or Missing Input JSON File** | `FileNotFoundError` or `json.JSONDecodeError` in visualizer/dashboard scripts. | Catches exception, logs structured error message identifying the offending file path and parse failure details, and exits cleanly without writing partial output files. | `1` |
 | **Missing Optional `polite-http` Package** | `ImportError` guard in `scripts/ols_utils.py`. | Transparently falls back to Python standard library `urllib.request` with built-in monotonic rate limiting and retry logic. | `0` |

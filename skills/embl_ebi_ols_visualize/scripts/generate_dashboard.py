@@ -88,95 +88,67 @@ def detect_host_system_theme() -> str:
   return "dark"
 
 
-def _synthesize_hierarchy_from_ontology(
-    onto_profile: dict[str, Any] | None,
-    repo_stats: dict[str, Any] | None,
-    title: str | None = None,
-) -> dict[str, Any]:
-  """Synthesizes a valid hierarchy payload when only ontology/stats JSON is provided."""
-  if onto_profile:
-    onto_id = onto_profile.get("ontology_id", "go")
-    prefix = onto_profile.get("preferred_prefix", onto_id.upper())
-    onto_title = onto_profile.get("title", f"{prefix} Ontology")
-    desc = onto_profile.get("description") or f"Overview of {onto_title}."
-    roots = onto_profile.get("roots") or []
-  else:
-    onto_id = "ols4"
-    prefix = "OLS4"
-    onto_title = "EMBL-EBI Ontology Lookup Service (OLS4) Repository"
-    desc = "Global statistical overview of ontologies indexed in EMBL-EBI OLS4."
-    roots = []
+def _load_example_datasets(active_target_id: str) -> dict[str, dict[str, Any]]:
+  """Builds the bundled example datasets shown in the dashboard's Examples group.
 
-  root_node_id = f"{prefix}:ROOT"
-  synthetic_term = {
-      "iri": f"http://purl.obolibrary.org/obo/{onto_id}.owl",
-      "obo_id": root_node_id,
-      "short_form": f"{prefix}_ROOT",
-      "label": onto_title,
-      "ontology_name": onto_id,
-      "ontology_prefix": prefix,
-      "description": [desc],
-      "is_obsolete": False,
-      "is_defining_ontology": True,
-      "is_root": True,
-      "synonyms": [prefix, onto_id],
-      "obo_synonym": [
-          {"name": prefix, "scope": "EXACT", "type": "acronym", "xrefs": []}
-      ],
-      "obo_xref": [],
-      "relations": {
-          "children": [
-              {
-                  "iri": r.get("iri")
-                  or ols_utils.obo_id_to_iri(r.get("id", "GO:0008150")),
-                  "obo_id": r.get("id", "GO:0008150"),
-                  "label": r.get("label", r.get("id", "root")),
-                  "ontology_name": onto_id,
-                  "ontology_prefix": prefix,
-                  "description": (
-                      [r.get("description", "")] if r.get("description") else []
-                  ),
-                  "is_obsolete": False,
-                  "is_root": True,
-                  "relation_type": "subClassOf",
-              }
-              for r in roots
-          ]
-      },
-  }
-  payload = visualize_hierarchy.build_hierarchy_payload(
-      synthetic_term,
-      title=title or f"EMBL-EBI OLS Ontology Overview: {onto_title}",
-  )
-  payload["ontology_profile"] = onto_profile
-  payload["repository_stats"] = repo_stats
-  return payload
-
-
-def _load_bundled_reference_presets(
-    active_target_id: str,
-    onto_profile: dict[str, Any] | None,
-    repo_stats: dict[str, Any] | None,
-) -> dict[str, dict[str, Any]]:
-  """Loads bundled reference datasets so users can compare concepts in the interactive dashboard."""
-  presets: dict[str, dict[str, Any]] = {}
-  fixture_files = (
-      "go_0005634_nucleus.json",
-      "doid_9351_diabetes.json",
-      "go_0006915_apoptosis.json",
-  )
-  for fname in fixture_files:
+  Each example is built only from its own bundled files and tagged
+  `source: "example"`. It never inherits metadata from the active dataset, and
+  the active dataset never inherits anything from an example.
+  """
+  examples: dict[str, dict[str, Any]] = {}
+  for fname in ols_utils.EXAMPLE_TERM_FILES:
     try:
-      raw = ols_utils.load_mock_data(fname)
+      raw = ols_utils.load_example_data(fname)
       built = visualize_hierarchy.build_hierarchy_payload(raw)
-      built["ontology_profile"] = onto_profile
-      built["repository_stats"] = repo_stats
-      tid = built["target_term"]["id"]
-      if tid != active_target_id:
-        presets[tid] = built
-    except Exception:  # pylint: disable=broad-except
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+      ols_utils.LOGGER.warning("Skipping example dataset %s: %s", fname, exc)
       continue
-  return presets
+    tid = built["target_term"]["id"]
+    if tid == active_target_id:
+      continue
+    onto_file = ols_utils.EXAMPLE_ONTOLOGY_FILES.get(
+        str(built["target_term"].get("ontology") or "").lower()
+    )
+    profile = None
+    if onto_file:
+      try:
+        profile = visualize_ontology.profile_ontology(
+            ols_utils.load_example_data(onto_file)
+        )
+      except (OSError, ValueError, json.JSONDecodeError):
+        profile = None
+    built["ontology_profile"] = profile
+    built["repository_stats"] = None
+    built["source"] = "example"
+    examples[tid] = built
+  return examples
+
+
+def _ontology_overview_payload(
+    onto_profile: dict[str, Any] | None,
+    repo_stats: dict[str, Any] | None,
+    title: str | None,
+) -> dict[str, Any]:
+  """Builds a payload for ontology/stats-only runs without inventing a term.
+
+  The graph views stay empty; the Metrics tab shows the real ontology profile
+  and repository statistics.
+  """
+  if onto_profile:
+    heading = onto_profile.get("title") or onto_profile.get("ontology_id") or ""
+  else:
+    heading = "EMBL-EBI OLS4 Repository"
+  return {
+      "title": title or f"EMBL-EBI OLS Ontology Overview: {heading}",
+      "target_term": None,
+      "nodes": [],
+      "edges": [],
+      "trees": [],
+      "root_paths": [],
+      "metrics": {"node_count": 0, "edge_count": 0},
+      "ontology_profile": onto_profile,
+      "repository_stats": repo_stats,
+  }
 
 
 def assemble_dashboard_data(
@@ -186,7 +158,11 @@ def assemble_dashboard_data(
     stats_data: dict[str, Any] | None = None,
     title: str | None = None,
 ) -> dict[str, Any]:
-  """Combines term, graph, ontology, and stats inputs into the dashboard contract."""
+  """Combines term, graph, ontology, and stats inputs into the dashboard contract.
+
+  Only the supplied inputs are used. Missing ontology or stats data stays
+  `None` (the dashboard hides those sections) rather than being back-filled.
+  """
   if not any([term_data, graph_data, ontology_data, stats_data]):
     raise ValueError(
         "At least one input (--term_json, --graph_json, --ontology_json, or --stats_json) is required."
@@ -194,77 +170,42 @@ def assemble_dashboard_data(
 
   onto_profile = None
   if ontology_data:
-    if "ontology_profile" in ontology_data and isinstance(
-        ontology_data["ontology_profile"], dict
-    ):
+    if isinstance(ontology_data.get("ontology_profile"), dict):
       onto_profile = ontology_data["ontology_profile"]
-    else:
+    elif ontology_data.get("ontologyId") or ontology_data.get("config"):
       onto_profile = visualize_ontology.profile_ontology(ontology_data)
-  else:
-    try:
-      onto_profile = visualize_ontology.profile_ontology(
-          ols_utils.load_mock_data("ontology_go.json")
-      )
-    except Exception:  # pylint: disable=broad-except
-      onto_profile = None
 
   repo_stats = None
   if stats_data:
-    if "repository_stats" in stats_data and isinstance(
-        stats_data["repository_stats"], dict
-    ):
+    if isinstance(stats_data.get("repository_stats"), dict):
       repo_stats = stats_data["repository_stats"]
     else:
       repo_stats = visualize_ontology.profile_repository_stats(stats_data)
-  elif (
-      ontology_data
-      and "repository_stats" in ontology_data
-      and isinstance(ontology_data["repository_stats"], dict)
-  ):
+  elif ontology_data and isinstance(ontology_data.get("repository_stats"), dict):
     repo_stats = ontology_data["repository_stats"]
-  else:
-    try:
-      repo_stats = visualize_ontology.profile_repository_stats(
-          ols_utils.load_mock_data("stats.json")
-      )
-    except Exception:  # pylint: disable=broad-except
-      repo_stats = None
 
   if graph_data and "target_term" in graph_data and "nodes" in graph_data:
     payload = dict(graph_data)
-    if title:
-      payload["title"] = title
+  elif term_data and "target_term" in term_data and "nodes" in term_data:
+    payload = dict(term_data)
   elif term_data:
-    if "target_term" in term_data and "nodes" in term_data:
-      payload = dict(term_data)
-      if title:
-        payload["title"] = title
-    else:
-      merged_term = dict(term_data)
-      if graph_data and isinstance(graph_data, dict):
-        merged_term.setdefault("relations", {})["graph"] = graph_data
-      payload = visualize_hierarchy.build_hierarchy_payload(
-          merged_term, title=title
-      )
+    merged_term = dict(term_data)
+    if graph_data and isinstance(graph_data, dict):
+      merged_term.setdefault("relations", {})["graph"] = graph_data
+    payload = visualize_hierarchy.build_hierarchy_payload(merged_term, title=title)
   elif graph_data:
-    synthetic_term = {
-        "obo_id": "OLS:GRAPH",
-        "label": title or "Ontology Subgraph",
-        "ontology_name": "ols",
-        "ontology_prefix": "OLS",
-        "description": ["Ontology relationship subgraph."],
-        "relations": {"graph": graph_data},
-    }
-    payload = visualize_hierarchy.build_hierarchy_payload(
-        synthetic_term, title=title
+    raise ValueError(
+        "--graph_json must be a processed hierarchy_graph.json, or be combined "
+        "with --term_json identifying the target term."
     )
   else:
-    payload = _synthesize_hierarchy_from_ontology(
-        onto_profile=onto_profile, repo_stats=repo_stats, title=title
-    )
+    payload = _ontology_overview_payload(onto_profile, repo_stats, title)
 
-  payload["ontology_profile"] = onto_profile or payload.get("ontology_profile")
-  payload["repository_stats"] = repo_stats or payload.get("repository_stats")
+  if title:
+    payload["title"] = title
+  payload["source"] = "live"
+  payload["ontology_profile"] = onto_profile
+  payload["repository_stats"] = repo_stats
   payload["system_theme"] = detect_host_system_theme()
   payload["generated_at"] = datetime.now(timezone.utc).strftime(
       "%Y-%m-%dT%H:%M:%SZ"
@@ -275,12 +216,8 @@ def assemble_dashboard_data(
   ]
   payload["disclaimer"] = ols_utils.SCIENTIFIC_DISCLAIMER
 
-  active_id = str(payload.get("target_term", {}).get("id") or "")
-  payload["presets"] = _load_bundled_reference_presets(
-      active_target_id=active_id,
-      onto_profile=payload["ontology_profile"],
-      repo_stats=payload["repository_stats"],
-  )
+  active_id = str((payload.get("target_term") or {}).get("id") or "")
+  payload["examples"] = _load_example_datasets(active_target_id=active_id)
   return payload
 
 
@@ -290,16 +227,16 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       str(dashboard_data.get("title") or "EMBL-EBI OLS Hierarchy Explorer")
   )
   target = dashboard_data.get("target_term") or {}
-  target_label = html.escape(str(target.get("label") or "Unknown Term"))
-  target_id = html.escape(str(target.get("id") or "N/A"))
+  target_id = html.escape(str(target.get("id") or ""))
+  target_label = html.escape(
+      str(target.get("label") or target.get("id") or dashboard_data.get("title") or "")
+  )
   target_ontology = html.escape(
-      str(
-          target.get("ontology_prefix") or target.get("ontology") or "OLS"
-      ).upper()
+      str(target.get("ontology_prefix") or target.get("ontology") or "").upper()
   )
   target_iri = html.escape(str(target.get("iri") or ""))
   is_obsolete = bool(target.get("is_obsolete", False))
-  status_label = "Obsolete" if is_obsolete else "Active"
+  status_label = ("Obsolete" if is_obsolete else "Active") if target else ""
   status_class = "status-critical" if is_obsolete else "status-nominal"
 
   safe_json = json.dumps(dashboard_data, ensure_ascii=False).replace(
@@ -837,6 +774,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         <span class="badge badge-id" id="header-obo-id">{target_id}</span>
         <span class="badge" id="header-ontology">{target_ontology}</span>
         <span class="badge {status_class}" id="header-status">{status_label}</span>
+        <span class="badge status-warning" id="header-source" style="display:none;"></span>
       </div>
       <h1 class="hero-title" id="header-title">{target_label}</h1>
       <div class="mono-val" style="font-size:0.73rem; color:var(--text-muted);" id="header-iri-wrap">
@@ -850,6 +788,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         Load JSON
       </label>
       <input type="file" id="file-input-json" accept=".json,application/json" style="display:none;" />
+      <span class="badge status-critical" id="upload-error" role="alert" style="display:none;"></span>
       <input type="text" id="node-search-input" class="input-box" placeholder="Filter nodes..." aria-label="Filter nodes" />
       <button type="button" class="btn" id="btn-trace-root">Root Path</button>
       <button type="button" class="btn" id="btn-reset-zoom">Reset View</button>
@@ -944,6 +883,14 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           <span class="legend-item">
             <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#E11D48" stroke-width="2.5" stroke-dasharray="3,3"/></svg>
             regulates
+          </span>
+          <span class="legend-item">
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#D97706" stroke-width="2.5" stroke-dasharray="2,3"/></svg>
+            hierarchical (unspecified)
+          </span>
+          <span class="legend-item">
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#78716C" stroke-width="2.5" stroke-dasharray="4,3"/></svg>
+            other
           </span>
         </div>
       </div>
@@ -1055,20 +1002,38 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         "metrics": "Corpus Metrics"
       }};
 
+      let uploadCounter = 0;
+
+      function datasetKey(payload) {{
+        const source = payload.source || "upload";
+        const tid = (payload.target_term && payload.target_term.id) || "overview";
+        if (source === "upload") {{
+          uploadCounter += 1;
+          return "upload:" + uploadCounter + ":" + tid;
+        }}
+        return source + ":" + tid;
+      }}
+
       function registerDataset(payload) {{
-        if (!payload || !payload.target_term || !payload.target_term.id) return;
-        DATASETS.set(payload.target_term.id, payload);
+        if (!payload || typeof payload !== "object") return "";
+        const key = payload.__key || datasetKey(payload);
+        payload.__key = key;
+        DATASETS.set(key, payload);
+        return key;
       }}
 
       registerDataset(INITIAL_DATA);
-      if (INITIAL_DATA.presets && typeof INITIAL_DATA.presets === "object") {{
-        Object.values(INITIAL_DATA.presets).forEach(p => registerDataset(p));
+      if (INITIAL_DATA.examples && typeof INITIAL_DATA.examples === "object") {{
+        Object.values(INITIAL_DATA.examples).forEach(ex => {{
+          ex.source = "example";
+          registerDataset(ex);
+        }});
       }}
 
       let activeData = INITIAL_DATA;
       let nodes = [];
       let edges = [];
-      let treeData = null;
+      let treesData = [];
       let metrics = {{}};
       let targetTerm = {{}};
       let nodeMap = new Map();
@@ -1091,13 +1056,16 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           .replace(/"/g, "&quot;");
       }}
 
+      const OTHER_RELATION_COLOR = "#78716C";
+
       function resolveRelationColor(relType) {{
-        const norm = String(relType || "subClassOf").trim();
-        if (norm === "part_of") return SEMANTIC_PALETTE.amber;
+        const norm = String(relType || "").trim();
+        if (norm === "subClassOf") return SEMANTIC_PALETTE.teal;
+        if (norm === "part_of" || norm === "hierarchical") return SEMANTIC_PALETTE.amber;
         if (norm === "develops_from" || norm === "derives_from") return SEMANTIC_PALETTE.emerald;
         if (norm === "occurs_in" || norm === "located_in") return SEMANTIC_PALETTE.indigo;
         if (norm === "regulates") return SEMANTIC_PALETTE.rose;
-        return SEMANTIC_PALETTE.teal;
+        return OTHER_RELATION_COLOR;
       }}
 
       function resolveNodeSemanticColor(node) {{
@@ -1225,15 +1193,33 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }}
       }});
 
+      function datasetOptionLabel(ds) {{
+        const t = ds.target_term;
+        if (!t) return ds.title || "Ontology overview";
+        return (t.label || t.id) + (t.label && t.id ? " (" + t.id + ")" : "");
+      }}
+
       function refreshDatasetSelector() {{
         const sel = document.getElementById("dataset-selector");
-        const currentId = (activeData.target_term && activeData.target_term.id) || "";
-        sel.innerHTML = Array.from(DATASETS.values()).map(ds => {{
-          const t = ds.target_term || {{}};
-          const selected = t.id === currentId ? " selected" : "";
-          return '<option value="' + escapeHtml(t.id) + '"' + selected + '>' +
-                 escapeHtml(t.label) + ' (' + escapeHtml(t.id) + ')</option>';
-        }}).join("");
+        const currentKey = activeData.__key || "";
+        const all = Array.from(DATASETS.values());
+        const renderOpt = ds => '<option value="' + escapeHtml(ds.__key) + '"' +
+          (ds.__key === currentKey ? " selected" : "") + '>' +
+          escapeHtml(datasetOptionLabel(ds)) + '</option>';
+        const loaded = all.filter(ds => ds.source !== "example");
+        const examples = all.filter(ds => ds.source === "example");
+        let html = "";
+        if (loaded.length) html += '<optgroup label="Loaded">' + loaded.map(renderOpt).join("") + '</optgroup>';
+        if (examples.length) html += '<optgroup label="Examples">' + examples.map(renderOpt).join("") + '</optgroup>';
+        sel.innerHTML = html;
+        sel.style.display = all.length > 1 ? "" : "none";
+      }}
+
+      function setBadge(id, text, extraClass) {{
+        const el = document.getElementById(id);
+        el.textContent = text || "";
+        el.className = "badge" + (extraClass ? " " + extraClass : "");
+        el.style.display = text ? "" : "none";
       }}
 
       // ==========================================================================
@@ -1265,7 +1251,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           }};
           return copy;
         }});
-        treeData = payload.tree ? JSON.parse(JSON.stringify(payload.tree)) : null;
+        const rawTrees = Array.isArray(payload.trees) ? payload.trees : (payload.tree ? [payload.tree] : []);
+        treesData = JSON.parse(JSON.stringify(rawTrees));
         metrics = payload.metrics || {{}};
         targetTerm = payload.target_term || {{}};
         nodeMap = new Map(nodes.map(n => [n.id, n]));
@@ -1274,24 +1261,28 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           selectedNodeId = targetTerm.id || (nodes[0] && nodes[0].id) || "";
         }}
 
-        // Update Top Header
-        document.getElementById("header-obo-id").textContent = targetTerm.id || "N/A";
-        document.getElementById("header-ontology").textContent =
-          String(targetTerm.ontology_prefix || targetTerm.ontology || "OLS").toUpperCase();
-        const statusEl = document.getElementById("header-status");
-        statusEl.textContent = targetTerm.is_obsolete ? "Obsolete" : "Active";
-        statusEl.className = "badge " + (targetTerm.is_obsolete ? "status-critical" : "status-nominal");
-        document.getElementById("header-title").textContent = targetTerm.label || "Unknown Term";
+        // Update Top Header (only values present in this dataset)
+        const hasTerm = Boolean(targetTerm.id);
+        setBadge("header-obo-id", targetTerm.id, "badge-id");
+        setBadge("header-ontology", String(targetTerm.ontology_prefix || targetTerm.ontology || "").toUpperCase());
+        setBadge(
+          "header-status",
+          hasTerm ? (targetTerm.is_obsolete ? "Obsolete" : "Active") : "",
+          targetTerm.is_obsolete ? "status-critical" : "status-nominal"
+        );
+        setBadge("header-source", payload.source === "example" ? "Example" : (payload.source === "upload" ? "Uploaded file" : ""));
+        document.getElementById("header-title").textContent = targetTerm.label || targetTerm.id || payload.title || "";
         const iriLink = document.getElementById("header-iri-link");
         iriLink.href = targetTerm.iri || "#";
         iriLink.textContent = targetTerm.iri || "";
+        document.getElementById("header-iri-wrap").style.display = targetTerm.iri ? "" : "none";
 
-        // Update Bento KPIs
-        document.getElementById("kpi-nodes").textContent = String(metrics.node_count || nodes.length);
-        document.getElementById("kpi-edges").textContent = String(metrics.edge_count || edges.length);
-        document.getElementById("kpi-ancestors").textContent = String(metrics.ancestor_count || 0);
-        document.getElementById("kpi-parents").textContent = String(metrics.direct_parent_count || 0);
-        document.getElementById("kpi-children").textContent = String(metrics.direct_child_count || 0);
+        // Update Bento KPIs (computed from this dataset's graph only)
+        document.getElementById("kpi-nodes").textContent = String(nodes.length);
+        document.getElementById("kpi-edges").textContent = String(edges.length);
+        document.getElementById("kpi-ancestors").textContent = String(metrics.ancestor_count ?? nodes.filter(n => Number(n.depth) < 0).length);
+        document.getElementById("kpi-parents").textContent = String((targetTerm.parents || []).length);
+        document.getElementById("kpi-children").textContent = String((targetTerm.children || []).length);
         document.getElementById("kpi-xrefs").textContent = String((targetTerm.xrefs || []).length);
 
         refreshDatasetSelector();
@@ -1312,10 +1303,12 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         if (!node) return;
         selectedNodeId = node.id;
 
-        document.getElementById("insp-id").textContent = node.id || "N/A";
-        const ontoBadge = document.getElementById("insp-onto");
-        ontoBadge.textContent = (node.ontology || targetTerm.ontology_prefix || "OLS") + (node.is_obsolete ? " (Obsolete)" : "");
-        ontoBadge.className = "badge " + (node.is_obsolete ? "status-critical" : "");
+        setBadge("insp-id", node.id, "badge-id");
+        setBadge(
+          "insp-onto",
+          [node.ontology, node.is_obsolete ? "Obsolete" : ""].filter(Boolean).join(" · "),
+          node.is_obsolete ? "status-critical" : ""
+        );
         document.getElementById("insp-label").textContent = node.label || node.id || "";
         const iriEl = document.getElementById("insp-iri");
         if (node.iri) {{
@@ -1346,7 +1339,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             }}).join(" &rarr; ");
           }}).join("<br/>");
         }} else {{
-          rootPathEl.textContent = "Root node";
+          rootPathEl.textContent = "None";
         }}
 
         const parents = node.parents || [];
@@ -1374,8 +1367,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         if (syns.length > 0) {{
           const rowsHtml = syns.map(s => {{
             const sName = typeof s === "string" ? s : (s.name || "");
-            const sScope = typeof s === "string" ? "EXACT" : (s.scope || "EXACT");
-            return "<tr><td>" + escapeHtml(sName) + "</td><td><span class='badge'>" + escapeHtml(sScope) + "</span></td></tr>";
+            const sScope = typeof s === "string" ? "" : (s.scope || "");
+            return "<tr><td>" + escapeHtml(sName) + "</td><td>" + (sScope ? "<span class='badge'>" + escapeHtml(sScope) + "</span>" : "") + "</td></tr>";
           }}).join("");
           synsEl.innerHTML = "<table class='data-table'><thead><tr><th>Synonym</th><th>Scope</th></tr></thead><tbody>" + rowsHtml + "</tbody></table>";
         }} else {{
@@ -1386,12 +1379,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         const xrefsEl = document.getElementById("insp-xrefs");
         if (xrefs.length > 0) {{
           const xRows = xrefs.map(x => {{
-            const db = escapeHtml(x.database || "External");
-            const xid = escapeHtml(x.id || "");
+            const ref = escapeHtml([x.database, x.id].filter(Boolean).join(":"));
             const desc = escapeHtml(x.description || "");
             const link = x.url
-              ? '<a href="' + escapeHtml(x.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--viz-teal);">' + db + ':' + xid + '</a>'
-              : (db + ':' + xid);
+              ? '<a href="' + escapeHtml(x.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--viz-teal);">' + ref + '</a>'
+              : ref;
             return "<tr><td>" + link + "</td><td>" + desc + "</td></tr>";
           }}).join("");
           xrefsEl.innerHTML = "<table class='data-table'><thead><tr><th>ID</th><th>Description</th></tr></thead><tbody>" + xRows + "</tbody></table>";
@@ -1421,7 +1413,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
         const rawRelRows = Object.entries(rawRelCounts).map(([k, v]) =>
           "<tr><td><code>" + escapeHtml(k) + "</code></td><td>" + Number(v) + "</td></tr>"
-        ).join("") || "<tr><td><code>term</code></td><td>1</td></tr>";
+        ).join("") || "<tr><td colspan='2' style='color:var(--text-muted);'>None</td></tr>";
 
         const nodeRows = nodes.map(n => {{
           const roleBadge = n.is_obsolete
@@ -1582,7 +1574,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         const container = document.getElementById("metrics-content");
         const onto = activeData.ontology_profile || null;
         const stats = activeData.repository_stats || null;
-        const relCounts = metrics.relation_counts || {{}};
+        const relCounts = {{}};
+        edges.forEach(e => {{ relCounts[e.type] = (relCounts[e.type] || 0) + 1; }});
         const paletteCycle = [
           SEMANTIC_PALETTE.teal,
           SEMANTIC_PALETTE.amber,
@@ -1597,23 +1590,36 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           color: resolveRelationColor(rtype)
         }}));
 
-        let leftPaneHtml =
-          "<h3 class='bento-pane-title'>Relation Counts</h3>" +
-          renderQuantitativeSvgBarPlot(relEntries, paletteCycle) +
-          "<h3 class='bento-pane-title' style='margin-top:1.1rem;'>Depth by Relation</h3>" +
-          renderDepthRelationHeatmap();
+        let leftPaneHtml = "";
+        if (edges.length > 0) {{
+          leftPaneHtml =
+            "<h3 class='bento-pane-title'>Relation Counts</h3>" +
+            renderQuantitativeSvgBarPlot(relEntries, paletteCycle) +
+            "<h3 class='bento-pane-title' style='margin-top:1.1rem;'>Depth by Relation</h3>" +
+            renderDepthRelationHeatmap();
+        }}
+
+        const metaRow = (label, value) =>
+          (value === undefined || value === null || value === "")
+            ? ""
+            : "<tr><th>" + label + "</th><td>" + escapeHtml(value) + "</td></tr>";
+        const countRow = (label, value) =>
+          (value === undefined || value === null)
+            ? ""
+            : "<tr><th>" + label + "</th><td>" + Number(value).toLocaleString() + "</td></tr>";
 
         let rightPaneHtml = "";
         if (onto) {{
           rightPaneHtml +=
-            "<h3 class='bento-pane-title'>" + escapeHtml(onto.title || "Ontology Metadata") + "</h3>" +
+            "<h3 class='bento-pane-title'>" + escapeHtml(onto.title || onto.ontology_id || "") + "</h3>" +
             "<table class='data-table' style='margin-bottom:1rem;'><tbody>" +
-            "<tr><th>Ontology</th><td>" + escapeHtml(onto.ontology_id) + " (" + escapeHtml(onto.preferred_prefix) + ")</td></tr>" +
-            "<tr><th>Version</th><td>" + escapeHtml(onto.version) + "</td></tr>" +
-            "<tr><th>Terms</th><td>" + Number(onto.number_of_terms || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Properties</th><td>" + Number(onto.number_of_properties || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Individuals</th><td>" + Number(onto.number_of_individuals || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>License</th><td>" + escapeHtml((onto.license && onto.license.label) || "Open Access") + "</td></tr>" +
+            metaRow("Ontology", onto.ontology_id) +
+            metaRow("Prefix", onto.preferred_prefix) +
+            metaRow("Version", onto.version) +
+            countRow("Terms", onto.number_of_terms) +
+            countRow("Properties", onto.number_of_properties) +
+            countRow("Individuals", onto.number_of_individuals) +
+            metaRow("License", onto.license && onto.license.label) +
             "</tbody></table>";
         }}
 
@@ -1621,10 +1627,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           rightPaneHtml +=
             "<h3 class='bento-pane-title'>OLS4 Repository Totals</h3>" +
             "<table class='data-table' style='margin-bottom:0.9rem;'><tbody>" +
-            "<tr><th>Ontologies</th><td>" + Number(stats.number_of_ontologies || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Classes</th><td>" + Number(stats.number_of_classes || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Properties</th><td>" + Number(stats.number_of_properties || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Individuals</th><td>" + Number(stats.number_of_individuals || 0).toLocaleString() + "</td></tr>" +
+            countRow("Ontologies", stats.number_of_ontologies) +
+            countRow("Classes", stats.number_of_classes) +
+            countRow("Properties", stats.number_of_properties) +
+            countRow("Individuals", stats.number_of_individuals) +
+            metaRow("Last Updated", stats.last_modified) +
             "</tbody></table>";
 
           const topList = Array.isArray(stats.top_ontologies) ? stats.top_ontologies : [];
@@ -1640,11 +1647,10 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           }}
         }}
 
-        container.innerHTML =
-          "<div class='bento-split-grid'>" +
-            "<div class='bento-pane'>" + leftPaneHtml + "</div>" +
-            "<div class='bento-pane'>" + rightPaneHtml + "</div>" +
-          "</div>";
+        const panes = [leftPaneHtml, rightPaneHtml].filter(Boolean);
+        container.innerHTML = panes.length
+          ? "<div class='bento-split-grid'>" + panes.map(h => "<div class='bento-pane'>" + h + "</div>").join("") + "</div>"
+          : "<div class='bento-pane'><span class='mono-val' style='color:var(--text-muted);'>No metrics in this dataset.</span></div>";
       }}
 
       // ==========================================================================
@@ -1785,7 +1791,9 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           for (let i = 0; i < 60; i++) {{
             step3DLayout();
           }}
+          zoom3d = 1.0;
         }}
+        updateSceneBounds();
       }}
 
       function step3DLayout() {{
@@ -1831,26 +1839,81 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }});
       }}
 
+      // Camera framing: the projection is centered on the scene's bounding
+      // sphere and zoom3d = 1.0 means the whole sphere (every node) fits the
+      // viewport at any rotation.
+      const sceneBounds = {{ cx: 0, cy: 0, cz: 0, radius: 1 }};
+      const LABEL_MARGIN_X = 90;
+      const LABEL_MARGIN_Y = 36;
+
+      function updateSceneBounds() {{
+        if (!nodes3d.length) {{
+          sceneBounds.cx = sceneBounds.cy = sceneBounds.cz = 0;
+          sceneBounds.radius = 1;
+          return;
+        }}
+        let minX = Infinity, minY = Infinity, minZ = Infinity;
+        let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+        nodes3d.forEach(n => {{
+          minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x);
+          minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y);
+          minZ = Math.min(minZ, n.z); maxZ = Math.max(maxZ, n.z);
+        }});
+        sceneBounds.cx = (minX + maxX) / 2;
+        sceneBounds.cy = (minY + maxY) / 2;
+        sceneBounds.cz = (minZ + maxZ) / 2;
+        let r = 1;
+        nodes3d.forEach(n => {{
+          r = Math.max(r, Math.hypot(n.x - sceneBounds.cx, n.y - sceneBounds.cy, n.z - sceneBounds.cz));
+        }});
+        sceneBounds.radius = r;
+      }}
+
+      function cameraParams(width, height) {{
+        const r = Math.max(40, sceneBounds.radius);
+        // Camera sits well outside the bounding sphere, so no node is ever
+        // behind or too close to the camera.
+        const viewerDist = r * 3 + 200;
+        const halfExtent = Math.max(
+          60,
+          Math.min((width - 2 * LABEL_MARGIN_X) / 2, (height - 2 * LABEL_MARGIN_Y) / 2)
+        );
+        // Largest on-screen offset of a point on the sphere is r * fov / (viewerDist - r).
+        const fitFov = halfExtent * (viewerDist - r) / r;
+        return {{ viewerDist: viewerDist, fov: fitFov * zoom3d }};
+      }}
+
+      let camera = {{ viewerDist: 520, fov: 560 }};
+
       function project3D(x, y, z, width, height) {{
         const cosY = Math.cos(rotY);
         const sinY = Math.sin(rotY);
         const cosX = Math.cos(rotX);
         const sinX = Math.sin(rotX);
 
-        const x1 = x * cosY - z * sinY;
-        const z1 = z * cosY + x * sinY;
-        const y2 = y * cosX - z1 * sinX;
-        const z2 = z1 * cosX + y * sinX;
+        const px = x - sceneBounds.cx;
+        const py = y - sceneBounds.cy;
+        const pz = z - sceneBounds.cz;
 
-        const fov = 560 * zoom3d;
-        const viewerDist = 520;
-        const scale = fov / Math.max(120, viewerDist + z2);
+        const x1 = px * cosY - pz * sinY;
+        const z1 = pz * cosY + px * sinY;
+        const y2 = py * cosX - z1 * sinX;
+        const z2 = z1 * cosX + py * sinX;
+
+        const scale = camera.fov / Math.max(1, camera.viewerDist + z2);
         return {{
           sx: width / 2 + x1 * scale,
           sy: height / 2 + y2 * scale,
           scale: scale,
           depth: z2
         }};
+      }}
+
+      function resetCamera3D() {{
+        rotY = 0.45;
+        rotX = 0.22;
+        zoom3d = 1.0;
+        updateSceneBounds();
       }}
 
       function renderWebGLBonds(width, height, projMap) {{
@@ -1923,6 +1986,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           const isLight = document.documentElement.getAttribute("data-theme") === "light";
           ctx3d.clearRect(0, 0, width, height);
 
+          camera = cameraParams(width, height);
           projectedNodes = nodes3d.map(n => {{
             const p = project3D(n.x, n.y, n.z, width, height);
             return {{ ...n, ...p }};
@@ -1985,14 +2049,50 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
               ? SEMANTIC_PALETTE.amber
               : (isSelected ? (isLight ? "#1C1917" : "#ECE8E2") : (isLight ? "#FFFFFF" : "#0D0E11"));
             ctx3d.stroke();
-
-            // Crisp node label
-            ctx3d.font = (n.is_target ? "600 " : "500 ") + Math.max(10, Math.round(11 * p.scale)) + "px 'DM Sans', sans-serif";
-            ctx3d.textAlign = "center";
-            ctx3d.fillStyle = isLight ? "#1C1917" : "#ECE8E2";
-            ctx3d.fillText(n.label + " (" + n.id + ")", p.sx, p.sy + r + 13);
             ctx3d.restore();
           }});
+
+          // Labels: constant on-screen size, placed by priority without
+          // overlaps; zooming in (wheel) reveals more labels and more detail.
+          const detail3d = detailForZoom(zoom3d);
+          const obstacles3d = [];
+          const cands3d = [];
+          const items3d = [];
+          projectedNodes.forEach((p, i) => {{
+            const n = p.ref;
+            const r = Math.max(4.5, (n.is_target ? 13.5 : (n.is_root ? 11 : 9)) * p.scale);
+            obstacles3d.push({{ x: p.sx - r, y: p.sy - r, w: 2 * r, h: 2 * r }});
+            const lines3d = buildLabelLines(n, detail3d);
+            const size = linesSize(lines3d);
+            const isHovered = hoveredNode3d && hoveredNode3d.id === n.id;
+            cands3d.push({{
+              options: labelPlacements(p.sx, p.sy, r, size, ["below", "above", "right", "left"]),
+              priority: labelPriority(n) + (isHovered ? 45 : 0) - p.depth * 1e-4,
+              own: i
+            }});
+            items3d.push({{ p: p, lines: lines3d, r: r, dim: Boolean(searchQuery) && !nodeMatchesSearch(n) }});
+          }});
+          const chosen3d = placeLabels(cands3d, obstacles3d, width, height);
+          ctx3d.save();
+          ctx3d.lineJoin = "round";
+          ctx3d.lineWidth = 3;
+          ctx3d.strokeStyle = isLight ? "#FFFFFF" : "#16171D";
+          items3d.forEach((it, i) => {{
+            const opt = chosen3d[i];
+            if (!opt) return;
+            ctx3d.globalAlpha = it.dim ? 0.3 : 1.0;
+            ctx3d.textAlign = opt.anchor === "middle" ? "center" : (opt.anchor === "end" ? "right" : "left");
+            it.lines.forEach((l, li) => {{
+              const px = l.kind === "main" ? LABEL_FONT_PX : LABEL_FONT_PX - 1;
+              ctx3d.font = l.weight + " " + px + "px " + (l.kind === "id" ? "'IBM Plex Mono', monospace" : "'DM Sans', sans-serif");
+              ctx3d.fillStyle = l.kind === "main" ? (isLight ? "#1C1917" : "#ECE8E2") : (isLight ? "#787774" : "#9A9895");
+              const x = it.p.sx + opt.dx;
+              const y = it.p.sy + opt.dy + li * LABEL_LINE_PX;
+              ctx3d.strokeText(l.text, x, y);
+              ctx3d.fillText(l.text, x, y);
+            }});
+          }});
+          ctx3d.restore();
         }}
         requestAnimationFrame(draw3DScene);
       }}
@@ -2060,7 +2160,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       stage3d.addEventListener("wheel", (e) => {{
         e.preventDefault();
         const factor = e.deltaY < 0 ? 1.08 : 0.92;
-        zoom3d = Math.max(0.45, Math.min(2.6, zoom3d * factor));
+        // zoom3d is relative to the fit-to-view framing (1.0 = all nodes visible).
+        zoom3d = Math.max(0.2, Math.min(12, zoom3d * factor));
       }}, {{ passive: false }});
 
       document.getElementById("btn-3d-rotate").addEventListener("click", function() {{
@@ -2069,15 +2170,196 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       }});
 
       document.getElementById("btn-3d-reset").addEventListener("click", function() {{
-        rotY = 0.45;
-        rotX = 0.22;
-        zoom3d = 1.0;
+        resetCamera3D();
       }});
+
+      // ==========================================================================
+      // Zoom-dependent label management (shared by all graph views)
+      // Labels keep a constant on-screen size. At each zoom level they are
+      // placed greedily by priority and any label that would overlap a node or
+      // an already placed label is hidden. Zooming in frees space, so more
+      // labels appear and each shows more detail.
+      // ==========================================================================
+      const LABEL_FONT_PX = 11;
+      const LABEL_LINE_PX = 13;
+      const measureCtx = document.createElement(["can", "vas"].join("")).getContext("2d");
+      const textWidthCache = new Map();
+
+      function textWidth(text, px, weight) {{
+        const key = weight + "|" + px + "|" + text;
+        let w = textWidthCache.get(key);
+        if (w === undefined) {{
+          measureCtx.font = weight + " " + px + "px 'DM Sans', sans-serif";
+          w = measureCtx.measureText(text).width;
+          if (textWidthCache.size > 5000) textWidthCache.clear();
+          textWidthCache.set(key, w);
+        }}
+        return w;
+      }}
+
+      function truncateText(text, maxPx, px, weight) {{
+        const s = String(text || "");
+        if (textWidth(s, px, weight) <= maxPx) return s;
+        let lo = 0, hi = s.length;
+        while (lo < hi) {{
+          const mid = Math.ceil((lo + hi) / 2);
+          if (textWidth(s.slice(0, mid) + "…", px, weight) <= maxPx) lo = mid; else hi = mid - 1;
+        }}
+        return lo > 0 ? s.slice(0, lo).trimEnd() + "…" : "";
+      }}
+
+      function nodeMatchesSearch(n) {{
+        if (!searchQuery) return false;
+        return String(n.label || "").toLowerCase().includes(searchQuery) ||
+               String(n.id || "").toLowerCase().includes(searchQuery);
+      }}
+
+      function labelPriority(n) {{
+        if (n.id === selectedNodeId) return 100;
+        if (n.is_target) return 90;
+        if (nodeMatchesSearch(n)) return 80;
+        if (highlightRootPath && n.on_root_path) return 70;
+        if (n.on_root_path) return 60;
+        if (n.is_root) return 55;
+        return 50 - Math.min(40, Math.abs(Number(n.depth || 0)) * 4);
+      }}
+
+      // Detail shown per zoom level (k = on-screen scale factor).
+      function detailForZoom(k) {{
+        if (k < 0.6) return {{ level: 0, maxWidth: 110, showId: false, showDef: false, edgeLabels: false }};
+        if (k < 1.3) return {{ level: 1, maxWidth: 170, showId: false, showDef: false, edgeLabels: false }};
+        if (k < 2.2) return {{ level: 2, maxWidth: 230, showId: true, showDef: false, edgeLabels: true }};
+        return {{ level: 3, maxWidth: 270, showId: true, showDef: true, edgeLabels: true }};
+      }}
+
+      function buildLabelLines(n, detail, opts) {{
+        const o = opts || {{}};
+        const weight = n.is_target ? 600 : 500;
+        const lines = [];
+        const main = (n.label || n.id || "") + (o.suffix || "");
+        lines.push({{ text: truncateText(main, detail.maxWidth, LABEL_FONT_PX, weight), kind: "main", weight: weight }});
+        if (detail.showId) {{
+          const idParts = [];
+          if (n.label && n.id && n.label !== n.id) idParts.push(n.id);
+          if (o.relation) idParts.push(o.relation);
+          if (idParts.length) lines.push({{ text: truncateText(idParts.join(" · "), detail.maxWidth, LABEL_FONT_PX - 1, 400), kind: "id", weight: 400 }});
+        }}
+        if (detail.showDef && n.definition) {{
+          lines.push({{ text: truncateText(n.definition, detail.maxWidth + 40, LABEL_FONT_PX - 1, 400), kind: "def", weight: 400 }});
+        }}
+        return lines.filter(l => l.text);
+      }}
+
+      function linesSize(lines) {{
+        let w = 0;
+        lines.forEach(l => {{
+          w = Math.max(w, textWidth(l.text, l.kind === "main" ? LABEL_FONT_PX : LABEL_FONT_PX - 1, l.weight));
+        }});
+        return {{ w: w, h: lines.length * LABEL_LINE_PX }};
+      }}
+
+      function boxesOverlap(a, b) {{
+        return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      }}
+
+      // Candidate label positions around a node at screen (sx, sy), radius r.
+      // Each entry carries the box (for collision tests) and how to draw it.
+      function labelPlacements(sx, sy, r, size, order) {{
+        const all = {{
+          right: {{ box: {{ x: sx + r + 4, y: sy - size.h / 2, w: size.w, h: size.h }}, anchor: "start", dx: r + 4, dy: -size.h / 2 + 10 }},
+          below: {{ box: {{ x: sx - size.w / 2, y: sy + r + 3, w: size.w, h: size.h }}, anchor: "middle", dx: 0, dy: r + 3 + 10 }},
+          above: {{ box: {{ x: sx - size.w / 2, y: sy - r - 3 - size.h, w: size.w, h: size.h }}, anchor: "middle", dx: 0, dy: -r - 3 - size.h + 10 }},
+          left: {{ box: {{ x: sx - r - 4 - size.w, y: sy - size.h / 2, w: size.w, h: size.h }}, anchor: "end", dx: -r - 4, dy: -size.h / 2 + 10 }}
+        }};
+        return order.map(k => all[k]);
+      }}
+
+      // Greedy placement. obstacles: boxes labels must not cover (nodes).
+      // candidates: {{ options: [placement...], priority, own }} where `own` is
+      // the obstacle index of the candidate's own node. For each candidate (by
+      // priority) the first position that collides with nothing is used.
+      // Returns the chosen placement per candidate, or null if hidden.
+      function placeLabels(candidates, obstacles, viewW, viewH) {{
+        const placed = [];
+        const chosen = new Array(candidates.length).fill(null);
+        const order = candidates.map((c, i) => i).sort((a, b) => candidates[b].priority - candidates[a].priority);
+        order.forEach(i => {{
+          const c = candidates[i];
+          for (const opt of c.options) {{
+            const b = opt.box;
+            if (b.x < 0 || b.y < 0 || b.x + b.w > viewW || b.y + b.h > viewH) continue;
+            let ok = true;
+            for (let j = 0; j < obstacles.length && ok; j++) {{
+              if (j !== c.own && boxesOverlap(b, obstacles[j])) ok = false;
+            }}
+            for (let j = 0; j < placed.length && ok; j++) {{
+              if (boxesOverlap(b, placed[j])) ok = false;
+            }}
+            if (!ok) continue;
+            placed.push({{ x: b.x - 2, y: b.y - 1, w: b.w + 4, h: b.h + 2 }});
+            chosen[i] = opt;
+            break;
+          }}
+        }});
+        return chosen;
+      }}
+
+      // Writes lines into an SVG <text> element counter-scaled by k so the
+      // on-screen size stays constant. (dx, dy) is the screen-pixel offset of
+      // the first baseline from the element's local origin.
+      function writeSvgLabel(textEl, lines, k, dx, dy, anchor) {{
+        const sel = window.d3.select(textEl);
+        sel.selectAll("tspan").remove();
+        sel.attr("text-anchor", anchor)
+          .attr("font-size", (LABEL_FONT_PX / k) + "px")
+          .attr("stroke-width", (3 / k) + "px")
+          .style("display", null);
+        lines.forEach((l, idx) => {{
+          sel.append("tspan")
+            .attr("x", dx / k)
+            .attr("y", (dy + idx * LABEL_LINE_PX) / k)
+            .attr("font-size", ((l.kind === "main" ? LABEL_FONT_PX : LABEL_FONT_PX - 1) / k) + "px")
+            .attr("font-weight", l.weight)
+            .attr("font-family", l.kind === "id" ? "IBM Plex Mono, monospace" : "DM Sans, sans-serif")
+            .attr("fill", l.kind === "main" ? "var(--text-main)" : "var(--text-muted)")
+            .text(l.text);
+        }});
+      }}
+
+      function fitTransform(bounds, width, height, padX, padY, maxK) {{
+        const bw = Math.max(1, bounds.maxX - bounds.minX);
+        const bh = Math.max(1, bounds.maxY - bounds.minY);
+        const k = Math.max(0.03, Math.min((width - 2 * padX) / bw, (height - 2 * padY) / bh, maxK));
+        return window.d3.zoomIdentity
+          .translate(width / 2 - k * (bounds.minX + bounds.maxX) / 2, height / 2 - k * (bounds.minY + bounds.maxY) / 2)
+          .scale(k);
+      }}
+
+      // On-screen node radius grows mildly with zoom but never vanishes.
+      function screenRadius(base, k) {{
+        return base * Math.max(0.5, Math.min(1.6, k));
+      }}
+
+      function rafThrottle(fn) {{
+        let pending = false;
+        return function() {{
+          if (pending) return;
+          pending = true;
+          requestAnimationFrame(() => {{ pending = false; fn(); }});
+        }};
+      }}
 
       // ==========================================================================
       // View 2: Interactive Relationship Node Map (2D Hierarchy DAG, D3.js v7)
       // ==========================================================================
-      function computeLayeredPositions(width, height, preserveExisting = false) {{
+      const DAG_COL_SPACING = 160;
+      const DAG_ROW_SPACING = 64;
+      const DAG_LAYER_GAP = 120;
+      const DAG_MAX_PER_ROW = 10;
+      let dagLabelRefresh = function() {{}};
+
+      // Layers by depth. Wide layers wrap into several rows so labels have room.
+      function computeLayeredPositions(preserveExisting) {{
         const depthGroups = new Map();
         nodes.forEach(n => {{
           const d = Number(n.depth || 0);
@@ -2085,72 +2367,76 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           depthGroups.get(d).push(n);
         }});
         const sortedDepths = Array.from(depthGroups.keys()).sort((a, b) => a - b);
-        const layerCount = Math.max(1, sortedDepths.length);
-        const verticalPad = 65;
-        const usableHeight = Math.max(300, height - verticalPad * 2);
-
-        sortedDepths.forEach((depthVal, layerIdx) => {{
-          const group = depthGroups.get(depthVal);
-          const y = layerCount === 1
-            ? height / 2
-            : verticalPad + (layerIdx / (layerCount - 1)) * usableHeight;
-          const count = group.length;
+        let y = 0;
+        sortedDepths.forEach(depthVal => {{
+          const group = depthGroups.get(depthVal).slice().sort((a, b) =>
+            (Number(b.on_root_path) - Number(a.on_root_path)) ||
+            String(a.label || a.id).toLowerCase().localeCompare(String(b.label || b.id).toLowerCase())
+          );
+          const rows = Math.ceil(group.length / DAG_MAX_PER_ROW);
           group.forEach((n, idx) => {{
+            const row = Math.floor(idx / DAG_MAX_PER_ROW);
+            const inRow = Math.min(DAG_MAX_PER_ROW, group.length - row * DAG_MAX_PER_ROW);
+            const col = idx % DAG_MAX_PER_ROW;
             if (!preserveExisting || typeof n.x !== "number" || typeof n.y !== "number") {{
-              n.x = (width / (count + 1)) * (idx + 1);
-              n.y = y;
+              n.x = (col - (inRow - 1) / 2) * DAG_COL_SPACING;
+              n.y = y + row * DAG_ROW_SPACING;
             }}
           }});
+          y += (rows - 1) * DAG_ROW_SPACING + DAG_LAYER_GAP;
         }});
+      }}
+
+      function graphBounds(points) {{
+        const b = {{ minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }};
+        points.forEach(p => {{
+          b.minX = Math.min(b.minX, p.x); b.maxX = Math.max(b.maxX, p.x);
+          b.minY = Math.min(b.minY, p.y); b.maxY = Math.max(b.maxY, p.y);
+        }});
+        if (!isFinite(b.minX)) return {{ minX: 0, minY: 0, maxX: 1, maxY: 1 }};
+        return b;
       }}
 
       function renderDagView(preserveViewport = false) {{
         const svgEl = document.getElementById("dag-svg");
         const width = svgEl.clientWidth || 860;
         const height = svgEl.clientHeight || 560;
-        computeLayeredPositions(width, height, preserveViewport);
+        computeLayeredPositions(preserveViewport);
 
         if (typeof window.d3 === "undefined") return;
         const d3 = window.d3;
         const dagSvg = d3.select("#dag-svg");
         dagSvg.selectAll("*").remove();
+        dagLabelRefresh = function() {{}};
+        if (!nodes.length) return;
 
         const defs = dagSvg.append("defs");
         const markerColors = {{
           "subClassOf": SEMANTIC_PALETTE.teal,
           "part_of": SEMANTIC_PALETTE.amber,
+          "hierarchical": SEMANTIC_PALETTE.amber,
           "develops_from": SEMANTIC_PALETTE.emerald,
           "derives_from": SEMANTIC_PALETTE.emerald,
           "occurs_in": SEMANTIC_PALETTE.indigo,
           "located_in": SEMANTIC_PALETTE.indigo,
           "regulates": SEMANTIC_PALETTE.rose,
-          "default": SEMANTIC_PALETTE.teal
+          "default": OTHER_RELATION_COLOR
         }};
+        const markerSel = [];
         Object.entries(markerColors).forEach(([key, color]) => {{
-          defs.append("marker")
+          const m = defs.append("marker")
             .attr("id", "arrow-" + key)
             .attr("viewBox", "0 -5 10 10")
-            .attr("refX", 22)
+            .attr("refX", 10)
             .attr("refY", 0)
-            .attr("markerWidth", 6)
-            .attr("markerHeight", 6)
-            .attr("orient", "auto")
-            .append("path")
-            .attr("d", "M0,-5L10,0L0,5")
-            .attr("fill", color);
+            .attr("markerUnits", "userSpaceOnUse")
+            .attr("orient", "auto");
+          m.append("path").attr("d", "M0,-5L10,0L0,5").attr("fill", color);
+          markerSel.push(m);
         }});
 
         const g = dagSvg.append("g").attr("class", "dag-RootGroup");
-        const zoom = d3.zoom()
-          .scaleExtent([0.25, 3.5])
-          .on("zoom", (event) => {{
-            dagZoomTransform = event.transform;
-            g.attr("transform", event.transform);
-          }});
-        dagSvg.call(zoom);
-        if (preserveViewport && dagZoomTransform) {{
-          dagSvg.call(zoom.transform, dagZoomTransform);
-        }}
+        let currentK = 1;
 
         const linkData = edges.map(e => ({{
           ...e,
@@ -2167,23 +2453,22 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
         const lines = edgeElements.append("line")
           .attr("class", "dag-edge-line")
-          .attr("x1", d => d.sourceNode.x)
-          .attr("y1", d => d.sourceNode.y)
-          .attr("x2", d => d.targetNode.x)
-          .attr("y2", d => d.targetNode.y)
+          .attr("vector-effect", "non-scaling-stroke")
           .attr("stroke", d => (highlightRootPath && d.on_root_path) ? SEMANTIC_PALETTE.amber : resolveRelationColor(d.type))
           .attr("stroke-opacity", d => (highlightRootPath && !d.on_root_path) ? 0.28 : 0.78)
-          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.0 : 2.0)
-          .attr("stroke-dasharray", d => (d.style && d.style.dasharray !== "none") ? d.style.dasharray : null)
+          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.0 : 1.6)
+          .attr("stroke-dasharray", d => (d.style && d.style.dasharray && d.style.dasharray !== "none") ? d.style.dasharray : null)
           .attr("marker-end", d => "url(#arrow-" + (markerColors[d.type] ? d.type : "default") + ")");
 
         const edgeLabels = edgeElements.append("text")
-          .attr("x", d => (d.sourceNode.x + d.targetNode.x) / 2)
-          .attr("y", d => (d.sourceNode.y + d.targetNode.y) / 2 - 5)
+          .attr("class", "dag-edge-label")
           .attr("text-anchor", "middle")
           .attr("font-family", "IBM Plex Mono, monospace")
-          .attr("font-size", "10px")
           .attr("fill", "var(--text-muted)")
+          .attr("stroke", "var(--bg-stage)")
+          .attr("stroke-linejoin", "round")
+          .attr("paint-order", "stroke")
+          .style("display", "none")
           .text(d => d.type);
 
         const tooltip = document.getElementById("graph-tooltip");
@@ -2194,6 +2479,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           .append("g")
           .attr("class", "node-item")
           .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+          .attr("opacity", d => (!searchQuery || nodeMatchesSearch(d)) ? 1.0 : 0.2)
           .style("cursor", "pointer")
           .call(
             d3.drag()
@@ -2201,14 +2487,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
                 d.x = event.x;
                 d.y = event.y;
                 d3.select(this).attr("transform", "translate(" + d.x + "," + d.y + ")");
-                lines
-                  .attr("x1", l => l.sourceNode.x)
-                  .attr("y1", l => l.sourceNode.y)
-                  .attr("x2", l => l.targetNode.x)
-                  .attr("y2", l => l.targetNode.y);
-                edgeLabels
-                  .attr("x", l => (l.sourceNode.x + l.targetNode.x) / 2)
-                  .attr("y", l => (l.sourceNode.y + l.targetNode.y) / 2 - 5);
+                updateGeometry();
+                scheduleLabels();
               }})
           )
           .on("click", (event, d) => {{
@@ -2231,21 +2511,108 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             tooltip.style.display = "none";
           }});
 
+        const baseRadius = d => d.is_target ? 12 : (d.is_root ? 10 : 8);
+
         nodeElements.append("circle")
           .attr("class", "dag-node-circle")
-          .attr("r", d => d.is_target ? 13.5 : (d.is_root ? 11 : 9.5))
+          .attr("vector-effect", "non-scaling-stroke")
           .attr("fill", d => resolveNodeSemanticColor(d))
           .attr("stroke", d => (highlightRootPath && d.on_root_path) ? SEMANTIC_PALETTE.amber : (d.id === selectedNodeId ? "var(--text-main)" : "var(--bg-card)"))
           .attr("stroke-width", d => (d.id === selectedNodeId || d.is_target || (highlightRootPath && d.on_root_path)) ? 2.8 : 1.6);
 
-        nodeElements.append("text")
-          .attr("dy", 25)
-          .attr("text-anchor", "middle")
-          .attr("font-family", "DM Sans, sans-serif")
-          .attr("font-size", d => d.is_target ? "12px" : "11px")
-          .attr("font-weight", d => d.is_target ? "600" : "500")
-          .attr("fill", "var(--text-main)")
-          .text(d => d.label + " (" + d.id + ")");
+        const nodeLabels = nodeElements.append("text")
+          .attr("class", "dag-node-label")
+          .attr("stroke", "var(--bg-stage)")
+          .attr("stroke-linejoin", "round")
+          .attr("paint-order", "stroke")
+          .style("pointer-events", "none")
+          .style("display", "none");
+
+        // Node radius (data units) and edge endpoints depend on zoom.
+        function updateGeometry() {{
+          const k = currentK;
+          nodeElements.select("circle").attr("r", d => screenRadius(baseRadius(d), k) / k);
+          lines.each(function(d) {{
+            const sx = d.sourceNode.x, sy = d.sourceNode.y;
+            const tx = d.targetNode.x, ty = d.targetNode.y;
+            const len = Math.hypot(tx - sx, ty - sy) || 1;
+            const rs = screenRadius(baseRadius(d.sourceNode), k) / k;
+            const rt = screenRadius(baseRadius(d.targetNode), k) / k + 1 / k;
+            d3.select(this)
+              .attr("x1", sx + (tx - sx) * rs / len)
+              .attr("y1", sy + (ty - sy) * rs / len)
+              .attr("x2", tx - (tx - sx) * rt / len)
+              .attr("y2", ty - (ty - sy) * rt / len);
+          }});
+          markerSel.forEach(m => m.attr("markerWidth", 8 / k).attr("markerHeight", 8 / k));
+        }}
+
+        function updateLabels() {{
+          const t = dagZoomTransform || d3.zoomIdentity;
+          const k = t.k;
+          const detail = detailForZoom(k);
+          const obstacles = [];
+          const cands = [];
+          const items = [];
+          nodes.forEach((n, i) => {{
+            const sx = t.applyX(n.x), sy = t.applyY(n.y);
+            const r = screenRadius(baseRadius(n), k);
+            obstacles.push({{ x: sx - r, y: sy - r, w: 2 * r, h: 2 * r }});
+            const lines2 = buildLabelLines(n, detail);
+            const size = linesSize(lines2);
+            cands.push({{ options: labelPlacements(sx, sy, r, size, ["below", "above", "right", "left"]), priority: labelPriority(n), own: i }});
+            items.push({{ kind: "node", n: n, lines: lines2, r: r }});
+          }});
+          if (detail.edgeLabels) {{
+            linkData.forEach(d => {{
+              const mx = t.applyX((d.sourceNode.x + d.targetNode.x) / 2);
+              const my = t.applyY((d.sourceNode.y + d.targetNode.y) / 2);
+              const w = textWidth(d.type, LABEL_FONT_PX - 1, 400);
+              cands.push({{ options: [{{ box: {{ x: mx - w / 2, y: my - 7, w: w, h: 12 }} }}], priority: 5, own: -1 }});
+              items.push({{ kind: "edge", d: d }});
+            }});
+          }}
+          const chosen = placeLabels(cands, obstacles, width, height);
+          const shownEdges = new Set();
+          items.forEach((it, i) => {{
+            if (chosen[i] && it.kind === "edge") shownEdges.add(it.d.id);
+          }});
+          nodeLabels.each(function(n, i) {{
+            const opt = chosen[i];
+            if (!opt) {{ d3.select(this).style("display", "none"); return; }}
+            writeSvgLabel(this, items[i].lines, k, opt.dx, opt.dy, opt.anchor);
+          }});
+          edgeLabels.each(function(d) {{
+            const sel = d3.select(this);
+            if (!shownEdges.has(d.id)) {{ sel.style("display", "none"); return; }}
+            sel.style("display", null)
+              .attr("x", (d.sourceNode.x + d.targetNode.x) / 2)
+              .attr("y", (d.sourceNode.y + d.targetNode.y) / 2 + 3 / k)
+              .attr("font-size", ((LABEL_FONT_PX - 1) / k) + "px")
+              .attr("stroke-width", (3 / k) + "px");
+          }});
+        }}
+        const scheduleLabels = rafThrottle(updateLabels);
+        dagLabelRefresh = scheduleLabels;
+
+        const zoom = d3.zoom()
+          .scaleExtent([0.03, 8])
+          .on("zoom", (event) => {{
+            dagZoomTransform = event.transform;
+            g.attr("transform", event.transform);
+            if (event.transform.k !== currentK) {{
+              currentK = event.transform.k;
+              updateGeometry();
+            }}
+            scheduleLabels();
+          }});
+        dagSvg.call(zoom).on("dblclick.zoom", null);
+        const initial = (preserveViewport && dagZoomTransform)
+          ? dagZoomTransform
+          : fitTransform(graphBounds(nodes), width, height, 70, 50, 1.4);
+        currentK = initial.k;
+        updateGeometry();
+        dagSvg.call(zoom.transform, initial);
       }}
 
       function highlightSelectedNodeInGraph(nodeId) {{
@@ -2261,102 +2628,213 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
         d3.selectAll(".dag-edge-line")
           .attr("stroke", d => (highlightRootPath && d.on_root_path) ? SEMANTIC_PALETTE.amber : resolveRelationColor(d.type))
-          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.0 : 2.0)
+          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.0 : 1.6)
           .attr("stroke-opacity", d => (!highlightRootPath || d.on_root_path) ? 0.82 : 0.25);
+        refreshGraphLabels();
       }}
 
       // ==========================================================================
       // View 3: Collapsible Lineage Tree View (D3.js v7)
       // ==========================================================================
+      const TREE_ROW_SPACING = 26;
+      const TREE_COL_SPACING = 240;
+      let treeLabelRefresh = function() {{}};
+      let treeStateInitialized = false;
+
+      // The same term can appear on several branches; key collapse state by
+      // the path from the top so each occurrence toggles independently.
+      function treeNodeKey(d) {{
+        return d.ancestors().map(a => a.data.id || "").reverse().join(">");
+      }}
+
+      function refreshGraphLabels() {{
+        dagLabelRefresh();
+        treeLabelRefresh();
+      }}
+
       function renderCollapsibleTreeView(preserveViewport = false) {{
-        if (!window.d3 || !treeData) return;
-        const d3 = window.d3;
         const svgEl = document.getElementById("tree-svg");
+        if (!window.d3) return;
+        const d3 = window.d3;
+        const svg = d3.select("#tree-svg");
+        svg.selectAll("*").remove();
+        treeLabelRefresh = function() {{}};
+        if (!treesData.length) return;
         const width = svgEl.clientWidth || 860;
         const height = svgEl.clientHeight || 560;
 
-        const svg = d3.select("#tree-svg");
-        svg.selectAll("*").remove();
-        const g = svg.append("g").attr("transform", "translate(95, 40)");
+        const g = svg.append("g");
+        const linkLayer = g.append("g");
+        const nodeLayer = g.append("g");
+        let currentK = 1;
 
-        const zoom = d3.zoom().scaleExtent([0.3, 3.0]).on("zoom", (event) => {{
-          treeZoomTransform = event.transform;
-          g.attr("transform", event.transform);
-        }});
-        svg.call(zoom);
-        if (preserveViewport && treeZoomTransform) {{
-          svg.call(zoom.transform, treeZoomTransform);
-        }}
-
-        const root = d3.hierarchy(treeData, d => d.children);
-        if (preserveViewport && collapsedTreeIds.size > 0) {{
+        // Multiple top-level terms are laid out as a forest under a layout-only
+        // container that is never drawn.
+        const isForest = treesData.length > 1;
+        const layoutRoot = isForest ? {{ __forest: true, children: treesData }} : treesData[0];
+        const root = d3.hierarchy(layoutRoot, d => d.children);
+        const collapse = d => {{
+          if (d.children) {{
+            d._children = d.children;
+            d.children = null;
+          }}
+        }};
+        if (preserveViewport && treeStateInitialized) {{
+          // Keep the user's expand/collapse choices across re-renders.
           root.descendants().forEach(d => {{
-            if (collapsedTreeIds.has(d.data.id) && d.children) {{
-              d._children = d.children;
-              d.children = null;
+            if (collapsedTreeIds.has(treeNodeKey(d))) collapse(d);
+          }});
+        }} else {{
+          // Open on the lineage: expand root-to-term paths and the term itself;
+          // every other branch starts collapsed and shows its hidden count.
+          collapsedTreeIds.clear();
+          const all = root.descendants();
+          // The term can occur under several top-level ancestors; only its
+          // deepest occurrence (the full lineage from the ontology root) opens.
+          let primary = null;
+          all.forEach(d => {{
+            if (d.data.is_target && (!primary || d.depth > primary.depth)) primary = d;
+          }});
+          const keep = new Set(primary ? primary.ancestors() : []);
+          all.forEach(d => {{
+            if (d.data.__forest || keep.has(d)) return;
+            if (d.children) {{
+              collapsedTreeIds.add(treeNodeKey(d));
+              collapse(d);
             }}
           }});
+          treeStateInitialized = true;
         }}
-        const treeLayout = d3.tree().size([height - 80, Math.max(480, width - 260)]);
+        // Fixed spacing per node: the tree grows instead of squeezing labels.
+        const treeLayout = d3.tree()
+          .nodeSize([TREE_ROW_SPACING, TREE_COL_SPACING])
+          .separation((a, b) => (a.parent === b.parent ? 1 : 1.4));
+
+        const nodeData = d => d.data;
+        const baseRadius = d => d.data.is_target ? 8.5 : 6;
+        let visible = [];
+        let nodeSel = null;
+        let linkSel = null;
+
+        function updateGeometry() {{
+          if (!nodeSel) return;
+          const k = currentK;
+          nodeSel.select("circle").attr("r", d => screenRadius(baseRadius(d), k) / k);
+        }}
+
+        function updateLabels() {{
+          if (!nodeSel) return;
+          const t = treeZoomTransform || d3.zoomIdentity;
+          const k = t.k;
+          const detail = detailForZoom(k);
+          const obstacles = [];
+          const cands = [];
+          const items = [];
+          visible.forEach((d, i) => {{
+            const n = nodeData(d);
+            const sx = t.applyX(d.y), sy = t.applyY(d.x);
+            const r = screenRadius(baseRadius(d), k);
+            obstacles.push({{ x: sx - r, y: sy - r, w: 2 * r, h: 2 * r }});
+            const hidden = d._children ? d._children.length : 0;
+            const lines2 = buildLabelLines(n, detail, {{
+              suffix: (hidden && detail.level >= 1) ? "  (+" + hidden + ")" : "",
+              relation: (detail.level >= 2 && n.relation_to_parent && n.relation_to_parent !== "root") ? n.relation_to_parent : ""
+            }});
+            const size = linesSize(lines2);
+            // Nodes with visible children sit inside a horizontal chain, so
+            // try above/below first; leaves prefer the free space to the right.
+            const order = d.children ? ["above", "below", "right"] : ["right", "above", "below"];
+            cands.push({{ options: labelPlacements(sx, sy, r, size, order), priority: labelPriority(n) + (d._children ? 3 : 0), own: i }});
+            items.push({{ lines: lines2, r: r }});
+          }});
+          const chosen = placeLabels(cands, obstacles, width, height);
+          nodeSel.select("text").each(function(d, i) {{
+            const opt = chosen[i];
+            if (!opt) {{ d3.select(this).style("display", "none"); return; }}
+            writeSvgLabel(this, items[i].lines, k, opt.dx, opt.dy, opt.anchor);
+          }});
+        }}
+        const scheduleLabels = rafThrottle(updateLabels);
+        treeLabelRefresh = scheduleLabels;
 
         function updateTree() {{
           treeLayout(root);
-          g.selectAll("*").remove();
+          visible = root.descendants().filter(d => !d.data.__forest);
+          linkLayer.selectAll("*").remove();
+          nodeLayer.selectAll("*").remove();
 
-          g.selectAll("path.tree-link")
-            .data(root.links())
+          linkSel = linkLayer.selectAll("path.tree-link")
+            .data(root.links().filter(l => !l.source.data.__forest))
             .enter()
             .append("path")
             .attr("class", "tree-link")
             .attr("fill", "none")
-            .attr("stroke", d => resolveRelationColor(d.target.data.relation_to_parent || "subClassOf"))
-            .attr("stroke-opacity", 0.76)
-            .attr("stroke-width", 2)
-            .attr("stroke-dasharray", d => {{
-              const rel = d.target.data.relation_to_parent || "subClassOf";
-              return rel === "subClassOf" || rel === "root" ? null : "5,3";
-            }})
+            .attr("vector-effect", "non-scaling-stroke")
+            .attr("stroke", d => resolveRelationColor(d.target.data.relation_to_parent))
+            .attr("stroke-opacity", 0.7)
+            .attr("stroke-width", 1.6)
+            .attr("stroke-dasharray", d => d.target.data.relation_to_parent === "subClassOf" ? null : "5,3")
             .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
 
-          const nodeSel = g.selectAll("g.tree-node")
-            .data(root.descendants())
+          nodeSel = nodeLayer.selectAll("g.tree-node")
+            .data(visible)
             .enter()
             .append("g")
             .attr("class", "tree-node")
             .attr("transform", d => "translate(" + d.y + "," + d.x + ")")
+            .attr("opacity", d => (!searchQuery || nodeMatchesSearch(d.data)) ? 1.0 : 0.25)
             .style("cursor", "pointer")
             .on("click", (event, d) => {{
               updateInspector(d.data.id);
               if (d.children) {{
                 d._children = d.children;
                 d.children = null;
-                collapsedTreeIds.add(d.data.id);
+                collapsedTreeIds.add(treeNodeKey(d));
               }} else if (d._children) {{
                 d.children = d._children;
                 d._children = null;
-                collapsedTreeIds.delete(d.data.id);
+                collapsedTreeIds.delete(treeNodeKey(d));
               }}
               updateTree();
             }});
 
           nodeSel.append("circle")
-            .attr("r", d => d.data.is_target ? 9.5 : 7)
+            .attr("vector-effect", "non-scaling-stroke")
             .attr("fill", d => d.data.is_target ? SEMANTIC_PALETTE.indigo : (d._children ? SEMANTIC_PALETTE.amber : SEMANTIC_PALETTE.teal))
-            .attr("stroke", "var(--bg-card)")
-            .attr("stroke-width", 2);
+            .attr("stroke", d => d.data.id === selectedNodeId ? "var(--text-main)" : "var(--bg-card)")
+            .attr("stroke-width", d => d.data.id === selectedNodeId ? 2.6 : 1.6);
 
           nodeSel.append("text")
-            .attr("dy", "0.32em")
-            .attr("x", d => (d.children || d._children) ? -12 : 12)
-            .attr("text-anchor", d => (d.children || d._children) ? "end" : "start")
-            .attr("font-family", "DM Sans, sans-serif")
-            .attr("font-size", "11px")
-            .attr("font-weight", d => d.data.is_target ? "600" : "400")
-            .attr("fill", "var(--text-main)")
-            .text(d => d.data.label + " (" + d.data.id + ")");
+            .attr("stroke", "var(--bg-stage)")
+            .attr("stroke-linejoin", "round")
+            .attr("paint-order", "stroke")
+            .style("pointer-events", "none")
+            .style("display", "none");
+
+          updateGeometry();
+          scheduleLabels();
         }}
 
+        const zoom = d3.zoom()
+          .scaleExtent([0.03, 8])
+          .on("zoom", (event) => {{
+            treeZoomTransform = event.transform;
+            g.attr("transform", event.transform);
+            if (event.transform.k !== currentK) {{
+              currentK = event.transform.k;
+              updateGeometry();
+            }}
+            scheduleLabels();
+          }});
+        svg.call(zoom).on("dblclick.zoom", null);
+
         updateTree();
+        const initial = (preserveViewport && treeZoomTransform)
+          ? treeZoomTransform
+          : fitTransform(graphBounds(visible.map(d => ({{ x: d.y, y: d.x }}))), width, height, 120, 40, 1.4);
+        currentK = initial.k;
+        updateGeometry();
+        svg.call(zoom.transform, initial);
       }}
 
       // Dataset Switcher
@@ -2367,153 +2845,420 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }}
       }});
 
-      // Client-side JSON Loader (supports normalized hierarchy_graph.json or raw term.json)
+      // ==========================================================================
+      // Uploaded JSON processing
+      // Mirrors scripts/visualize_hierarchy.build_hierarchy_payload so an uploaded
+      // raw OLS4 term.json is turned into a graph from its own content only.
+      // ==========================================================================
+      const RELATION_LIST_KEYS = [
+        "parents", "children", "ancestors", "descendants",
+        "hierarchicalParents", "hierarchicalChildren",
+        "hierarchicalAncestors", "hierarchicalDescendants"
+      ];
+      const RELATION_STYLES = {{
+        subClassOf: ["solid", "none", false],
+        part_of: ["dashed", "6,4", true],
+        develops_from: ["dashed", "8,4", true],
+        derives_from: ["dashed", "8,4", true],
+        occurs_in: ["dotted", "3,3", true],
+        located_in: ["dotted", "3,3", true],
+        regulates: ["dotted", "4,3", true],
+        hierarchical: ["dashed", "2,3", true]
+      }};
+      const INVERSE_GRAPH_RELATIONS = new Set(["has_part", "bfo_0000051"]);
+
+      function iriToOboId(value) {{
+        const text = String(value || "").trim();
+        if (!text) return null;
+        if (text.startsWith("http://") || text.startsWith("https://")) {{
+          let tail = text.replace(/[/]+$/, "");
+          tail = tail.slice(tail.lastIndexOf("/") + 1);
+          if (tail.includes("#")) tail = tail.slice(tail.lastIndexOf("#") + 1);
+          const us = tail.indexOf("_");
+          if (us > 0) {{
+            const prefix = tail.slice(0, us);
+            if (/^[A-Za-z]+$/.test(prefix)) return prefix.toUpperCase() + ":" + tail.slice(us + 1);
+          }}
+          return tail || null;
+        }}
+        return text;
+      }}
+
+      function canonicalNodeId(item) {{
+        if (typeof item === "string") return iriToOboId(item);
+        if (!item || typeof item !== "object") return null;
+        if (typeof item.obo_id === "string" && item.obo_id.trim()) return item.obo_id.trim();
+        const sf = item.short_form;
+        if (typeof sf === "string" && sf.includes("_")) {{
+          const us = sf.indexOf("_");
+          const prefix = sf.slice(0, us);
+          if (/^[A-Za-z]+$/.test(prefix)) return prefix.toUpperCase() + ":" + sf.slice(us + 1);
+        }}
+        const iri = item.iri || item.id;
+        return (typeof iri === "string" && iri.trim()) ? iriToOboId(iri) : null;
+      }}
+
+      function normalizeRelationType(raw) {{
+        if (!raw) return "hierarchical";
+        const cleaned = String(raw).trim();
+        const lower = cleaned.toLowerCase().split(" ").join("_");
+        if (["subclassof", "is_a", "is-a", "rdfs:subclassof"].includes(lower) || cleaned.endsWith("#subClassOf")) return "subClassOf";
+        if (lower.includes("bfo_0000050") || lower === "part_of") return "part_of";
+        if (lower.includes("ro_0002202") || lower.includes("develops_from")) return "develops_from";
+        if (lower.includes("ro_0001000") || lower.includes("derives_from")) return "derives_from";
+        if (lower.includes("bfo_0000066") || lower.includes("occurs_in")) return "occurs_in";
+        if (lower.includes("ro_0001025") || lower.includes("located_in")) return "located_in";
+        if (["ro_0002211", "ro_0002212", "ro_0002213", "regulates"].some(k => lower.includes(k))) return "regulates";
+        return cleaned;
+      }}
+
+      function extractDefinition(t) {{
+        if (Array.isArray(t.description) && t.description.length) return String(t.description[0]).trim();
+        if (typeof t.description === "string") return t.description.trim();
+        const od = t.obo_definition_citation;
+        if (Array.isArray(od) && od.length && od[0] && od[0].definition) return String(od[0].definition).trim();
+        return "";
+      }}
+
+      function extractSynonyms(t) {{
+        const out = [];
+        const seen = new Set();
+        (Array.isArray(t.obo_synonym) ? t.obo_synonym : []).forEach(s => {{
+          if (!s || !s.name) return;
+          const raw = String(s.scope || "").toUpperCase();
+          const scope = !raw ? "" : raw.includes("EXACT") ? "EXACT" : raw.includes("BROAD") ? "BROAD" : raw.includes("NARROW") ? "NARROW" : "RELATED";
+          const key = String(s.name).toLowerCase() + "|" + scope;
+          if (seen.has(key)) return;
+          seen.add(key);
+          out.push({{ name: String(s.name), scope: scope }});
+        }});
+        (Array.isArray(t.synonyms) ? t.synonyms : []).forEach(name => {{
+          const n = String(name || "").trim();
+          if (n && !out.some(o => o.name.toLowerCase() === n.toLowerCase())) out.push({{ name: n, scope: "" }});
+        }});
+        return out;
+      }}
+
+      function extractXrefs(t) {{
+        return (Array.isArray(t.obo_xref) ? t.obo_xref : [])
+          .filter(x => x && (x.database || x.id))
+          .map(x => ({{ database: x.database || "", id: x.id || "", description: x.description || "", url: x.url || "" }}));
+      }}
+
+      function buildHierarchyFromTerm(termData, fileName) {{
+        const targetId = canonicalNodeId(termData);
+        if (!targetId) throw new Error("The file has no term identifier (obo_id, short_form or iri).");
+        const relations = (termData.relations && typeof termData.relations === "object") ? termData.relations : {{}};
+        const relList = key => {{
+          const items = relations[key] || termData[key] || [];
+          return Array.isArray(items) ? items.filter(i => i && typeof i === "object") : [];
+        }};
+
+        const nodesById = new Map();
+        const iriToId = new Map();
+        function registerNode(raw, isTarget) {{
+          const nid = canonicalNodeId(raw);
+          if (!nid) return null;
+          const prev = nodesById.get(nid);
+          const iri = raw.iri || (prev && prev.iri) || "";
+          if (iri) iriToId.set(iri, nid);
+          iriToId.set(nid, nid);
+          nodesById.set(nid, {{
+            id: nid,
+            iri: iri,
+            label: raw.label || (prev && prev.label) || nid,
+            ontology: raw.ontology_prefix || (prev && prev.ontology) || (nid.includes(":") ? nid.split(":")[0].toUpperCase() : ""),
+            definition: extractDefinition(raw) || (prev && prev.definition) || "",
+            is_target: Boolean(isTarget || (prev && prev.is_target)),
+            is_root: Boolean(raw.is_root || (prev && prev.is_root)),
+            is_obsolete: Boolean(raw.is_obsolete || (prev && prev.is_obsolete)),
+            depth: 0,
+            on_root_path: false,
+            synonyms: extractSynonyms(raw).length ? extractSynonyms(raw) : ((prev && prev.synonyms) || []),
+            xrefs: extractXrefs(raw).length ? extractXrefs(raw) : ((prev && prev.xrefs) || []),
+            comments: (prev && prev.comments) || []
+          }});
+          return nid;
+        }}
+
+        registerNode(termData, true);
+        RELATION_LIST_KEYS.forEach(k => relList(k).forEach(item => registerNode(item, false)));
+        const graphBlock = relations.graph || termData.graph;
+        if (graphBlock && Array.isArray(graphBlock.nodes)) graphBlock.nodes.forEach(n => n && registerNode(n, false));
+
+        const edgesByKey = new Map();
+        const edgePairs = new Set();
+        const resolveId = raw => raw ? (iriToId.get(raw) || canonicalNodeId(raw)) : null;
+        function addEdge(src, tgt, rawType) {{
+          if (!src || !tgt || src === tgt || !nodesById.has(src) || !nodesById.has(tgt)) return;
+          const type = normalizeRelationType(rawType);
+          if (type === "hierarchical" && edgePairs.has(src + "|" + tgt)) return;
+          const key = src + "|" + tgt + "|" + type;
+          if (edgesByKey.has(key)) return;
+          edgePairs.add(src + "|" + tgt);
+          const st = RELATION_STYLES[type] || ["dotted", "4,3", true];
+          edgesByKey.set(key, {{
+            id: src + "->" + tgt + ":" + type,
+            source: src,
+            target: tgt,
+            type: type,
+            label: type,
+            is_hierarchical: st[2],
+            on_root_path: false,
+            style: {{ stroke: resolveRelationColor(type), color: resolveRelationColor(type), pattern: st[0], dasharray: st[1] }}
+          }});
+        }}
+
+        // 1. /graph edges are subject -> object; reverse for top-down display.
+        if (graphBlock && Array.isArray(graphBlock.edges)) {{
+          graphBlock.edges.forEach(ge => {{
+            if (!ge) return;
+            const rawLabel = ge.label || ge.uri;
+            if (!rawLabel) return;
+            const sid = resolveId(String(ge.source || ""));
+            const tid = resolveId(String(ge.target || ""));
+            const labelKey = String(rawLabel).trim().toLowerCase().split(" ").join("_");
+            const uriKey = String(ge.uri || "").split("/").pop().toLowerCase();
+            if (INVERSE_GRAPH_RELATIONS.has(labelKey) || INVERSE_GRAPH_RELATIONS.has(uriKey)) addEdge(sid, tid, rawLabel);
+            else addEdge(tid, sid, rawLabel);
+          }});
+        }}
+        // 2. /parents and /children are is-a relations.
+        const directParents = new Set();
+        relList("parents").forEach(p => {{
+          const pid = canonicalNodeId(p);
+          if (pid) {{ directParents.add(pid); addEdge(pid, targetId, p.relation_type || "subClassOf"); }}
+        }});
+        const directChildren = new Set();
+        relList("children").forEach(c => {{
+          const cid = canonicalNodeId(c);
+          if (cid) {{ directChildren.add(cid); addEdge(targetId, cid, c.relation_type || "subClassOf"); }}
+        }});
+        // 3. Hierarchical relations: typed from the item, else the is-a lists, else "hierarchical".
+        relList("hierarchicalParents").forEach(hp => {{
+          const hid = canonicalNodeId(hp);
+          addEdge(hid, targetId, hp.relation_type || (directParents.has(hid) ? "subClassOf" : null));
+        }});
+        relList("hierarchicalChildren").forEach(hc => {{
+          const hid = canonicalNodeId(hc);
+          addEdge(targetId, hid, hc.relation_type || (directChildren.has(hid) ? "subClassOf" : null));
+        }});
+        // 4. Lineage records: each ancestor's own parents.
+        (Array.isArray(relations.lineage) ? relations.lineage : []).forEach(rec => {{
+          if (!rec) return;
+          const childId = resolveId(String(rec.iri || "")) || canonicalNodeId(rec);
+          const isa = new Set();
+          (rec.parents || []).forEach(p => {{
+            const pid = canonicalNodeId(p);
+            if (pid) {{ isa.add(pid); addEdge(pid, childId, p.relation_type || "subClassOf"); }}
+          }});
+          (rec.hierarchicalParents || []).forEach(hp => {{
+            const hid = canonicalNodeId(hp);
+            addEdge(hid, childId, hp.relation_type || (isa.has(hid) ? "subClassOf" : null));
+          }});
+        }});
+
+        // Drop nodes that no edge connects (no invented links).
+        const edgesList = Array.from(edgesByKey.values());
+        const connected = new Set([targetId]);
+        edgesList.forEach(e => {{ connected.add(e.source); connected.add(e.target); }});
+        const unconnected = Array.from(nodesById.keys()).filter(id => !connected.has(id));
+        unconnected.forEach(id => nodesById.delete(id));
+
+        const incoming = new Map();
+        const outgoing = new Map();
+        nodesById.forEach((_, id) => {{ incoming.set(id, []); outgoing.set(id, []); }});
+        edgesList.forEach(e => {{ outgoing.get(e.source).push(e.target); incoming.get(e.target).push(e.source); }});
+
+        // Depth via BFS from the target over real edges.
+        const visitedUp = new Set([targetId]);
+        let queue = [[targetId, 0]];
+        while (queue.length) {{
+          const [cur, d] = queue.shift();
+          incoming.get(cur).forEach(pid => {{
+            if (!visitedUp.has(pid)) {{ visitedUp.add(pid); nodesById.get(pid).depth = d - 1; queue.push([pid, d - 1]); }}
+          }});
+        }}
+        const visitedDown = new Set([targetId]);
+        queue = [[targetId, 0]];
+        while (queue.length) {{
+          const [cur, d] = queue.shift();
+          outgoing.get(cur).forEach(cid => {{
+            if (!visitedDown.has(cid) && !visitedUp.has(cid)) {{ visitedDown.add(cid); nodesById.get(cid).depth = d + 1; queue.push([cid, d + 1]); }}
+          }});
+        }}
+
+        // Top-level nodes and shortest paths down to the target.
+        let tops = Array.from(nodesById.keys()).filter(id => incoming.get(id).length === 0);
+        if (!tops.length) tops = [targetId];
+        const rootPaths = [];
+        const pathPairs = new Set();
+        tops.forEach(rid => {{
+          if (rid === targetId) {{ rootPaths.push([targetId]); return; }}
+          const q = [[rid]];
+          const seen = new Set([rid]);
+          while (q.length) {{
+            const path = q.shift();
+            const last = path[path.length - 1];
+            if (last === targetId) {{
+              rootPaths.push(path);
+              path.forEach(id => {{ nodesById.get(id).on_root_path = true; }});
+              for (let i = 0; i < path.length - 1; i++) pathPairs.add(path[i] + "|" + path[i + 1]);
+              break;
+            }}
+            outgoing.get(last).forEach(n => {{ if (!seen.has(n)) {{ seen.add(n); q.push(path.concat([n])); }} }});
+          }}
+        }});
+        nodesById.get(targetId).on_root_path = true;
+        edgesList.forEach(e => {{ e.on_root_path = pathPairs.has(e.source + "|" + e.target); }});
+
+        const typeLookup = new Map();
+        edgesList.forEach(e => {{
+          const k = e.source + "|" + e.target;
+          if (!typeLookup.has(k) || e.type === "subClassOf") typeLookup.set(k, e.type);
+        }});
+        nodesById.forEach((n, id) => {{
+          n.parents = Array.from(new Set(incoming.get(id))).map(pid => ({{ id: pid, label: nodesById.get(pid).label, relation: typeLookup.get(pid + "|" + id) }}));
+          n.children = Array.from(new Set(outgoing.get(id))).map(cid => ({{ id: cid, label: nodesById.get(cid).label, relation: typeLookup.get(id + "|" + cid) }}));
+        }});
+
+        function buildTree(id, rel, visited, depth) {{
+          const n = nodesById.get(id);
+          const kids = depth < 12
+            ? Array.from(new Set(outgoing.get(id))).filter(c => !visited.has(c))
+                .sort((a, b) => nodesById.get(a).label.toLowerCase().localeCompare(nodesById.get(b).label.toLowerCase()))
+                .map(c => buildTree(c, typeLookup.get(id + "|" + c), new Set([...visited, c]), depth + 1))
+            : [];
+          return {{ id: id, label: n.label, definition: n.definition, relation_to_parent: rel, is_target: n.is_target, is_root: n.is_root, on_root_path: n.on_root_path, depth: n.depth, children: kids }};
+        }}
+        const trees = tops
+          .sort((a, b) => nodesById.get(a).label.toLowerCase().localeCompare(nodesById.get(b).label.toLowerCase()))
+          .map(rid => buildTree(rid, "root", new Set([rid]), 0));
+
+        const nodesList = Array.from(nodesById.values()).sort((a, b) => a.depth - b.depth || a.label.localeCompare(b.label));
+        const target = nodesById.get(targetId);
+        const relationCounts = {{}};
+        edgesList.forEach(e => {{ relationCounts[e.type] = (relationCounts[e.type] || 0) + 1; }});
+        const rawRelationCounts = {{}};
+        RELATION_LIST_KEYS.forEach(k => {{ const arr = relations[k] || termData[k]; if (Array.isArray(arr)) rawRelationCounts[k] = arr.length; }});
+        if (graphBlock) {{ rawRelationCounts.graph_nodes = (graphBlock.nodes || []).length; rawRelationCounts.graph_edges = (graphBlock.edges || []).length; }}
+        const depths = nodesList.map(n => n.depth);
+
+        return {{
+          title: target.label + " (" + targetId + ")",
+          source: "upload",
+          source_file: fileName || "",
+          input_summary: {{
+            obo_id: targetId,
+            iri: target.iri,
+            ontology: termData.ontology_name || "",
+            raw_synonym_count: (termData.synonyms || []).length + (termData.obo_synonym || []).length,
+            raw_xref_count: (termData.obo_xref || []).length,
+            raw_relation_counts: rawRelationCounts
+          }},
+          processing_summary: {{
+            normalized_nodes: nodesList.length,
+            deduplicated_edges: edgesList.length,
+            min_depth: Math.min(...depths),
+            max_depth: Math.max(...depths),
+            shortest_root_paths: rootPaths.length,
+            unconnected_nodes: unconnected.length,
+            resolved_xrefs: target.xrefs.filter(x => x.url).length
+          }},
+          target_term: {{
+            id: targetId,
+            iri: target.iri,
+            label: target.label,
+            ontology: termData.ontology_name || "",
+            ontology_prefix: termData.ontology_prefix || target.ontology,
+            definition: target.definition,
+            is_obsolete: target.is_obsolete,
+            is_root: target.is_root,
+            synonyms: target.synonyms,
+            xrefs: target.xrefs,
+            parents: target.parents,
+            children: target.children
+          }},
+          nodes: nodesList,
+          edges: edgesList,
+          trees: trees,
+          root_paths: rootPaths,
+          metrics: {{
+            node_count: nodesList.length,
+            edge_count: edgesList.length,
+            ancestor_count: nodesList.filter(n => n.depth < 0).length,
+            descendant_count: nodesList.filter(n => n.depth > 0).length,
+            direct_parent_count: target.parents.length,
+            direct_child_count: target.children.length,
+            relation_counts: relationCounts
+          }},
+          ontology_profile: null,
+          repository_stats: null
+        }};
+      }}
+
+      function processUploadedJson(parsed, fileName) {{
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {{
+          throw new Error("Expected a JSON object.");
+        }}
+        // Processed hierarchy_graph.json / pipeline payload: use as-is, with only
+        // the metadata contained in the file itself.
+        if (parsed.target_term && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {{
+          const copy = JSON.parse(JSON.stringify(parsed));
+          delete copy.examples;
+          delete copy.presets;
+          delete copy.__key;
+          copy.source = "upload";
+          copy.source_file = fileName || "";
+          copy.ontology_profile = parsed.ontology_profile || null;
+          copy.repository_stats = parsed.repository_stats || null;
+          return copy;
+        }}
+        // Raw OLS4 term.json
+        if (parsed.obo_id || parsed.iri || parsed.short_form) {{
+          return buildHierarchyFromTerm(parsed, fileName);
+        }}
+        throw new Error("Unrecognized file. Load a term.json from get_term.py or a hierarchy_graph.json.");
+      }}
+
+      function showUploadError(message) {{
+        setBadge("upload-error", message ? "Upload failed: " + message : "", "status-critical");
+      }}
+
+      // Client-side JSON Loader (processed hierarchy_graph.json or raw OLS4 term.json)
       document.getElementById("file-input-json").addEventListener("change", function(e) {{
         const file = e.target.files && e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function(evt) {{
           try {{
-            const parsed = JSON.parse(String(evt.target.result || "{{}}"));
-            if (parsed.target_term && Array.isArray(parsed.nodes)) {{
-              registerDataset(parsed);
-              loadActivePayload(parsed, {{ preserveViewport: false }});
-            }} else if (parsed.obo_id || parsed.iri) {{
-              const tid = parsed.obo_id || parsed.short_form || "CUSTOM:0001";
-              const tlabel = parsed.label || tid;
-              const defn = Array.isArray(parsed.description) ? (parsed.description[0] || "") : (parsed.description || "");
-              const rels = parsed.relations || {{}};
-              const customNodes = [{{
-                id: tid,
-                iri: parsed.iri || "",
-                label: tlabel,
-                ontology: parsed.ontology_prefix || "OLS",
-                definition: defn,
-                is_target: true,
-                is_root: Boolean(parsed.is_root),
-                is_obsolete: Boolean(parsed.is_obsolete),
-                depth: 0,
-                on_root_path: true,
-                synonyms: parsed.obo_synonym || (parsed.synonyms || []).map(s => ({{ name: s, scope: "EXACT" }})),
-                xrefs: parsed.obo_xref || [],
-                parents: [],
-                children: []
-              }}];
-              const customEdges = [];
-              (rels.parents || rels.hierarchicalParents || []).forEach(p => {{
-                const pid = p.obo_id || p.short_form || p.label;
-                if (!pid) return;
-                customNodes.push({{
-                  id: pid,
-                  iri: p.iri || "",
-                  label: p.label || pid,
-                  ontology: p.ontology_prefix || "OLS",
-                  definition: Array.isArray(p.description) ? (p.description[0] || "") : "",
-                  is_target: false,
-                  is_root: Boolean(p.is_root),
-                  depth: -1,
-                  on_root_path: true,
-                  parents: [],
-                  children: []
-                }});
-                const rtype = p.relation_type || "subClassOf";
-                customEdges.push({{
-                  id: pid + "->" + tid + ":" + rtype,
-                  source: pid,
-                  target: tid,
-                  type: rtype,
-                  is_hierarchical: rtype !== "subClassOf",
-                  on_root_path: true,
-                  style: {{
-                    stroke: resolveRelationColor(rtype),
-                    pattern: rtype === "subClassOf" ? "solid" : "dashed",
-                    dasharray: rtype === "subClassOf" ? "none" : "6,4"
-                  }}
-                }});
-                customNodes[0].parents.push({{ id: pid, label: p.label || pid, relation: rtype }});
-              }});
-              (rels.children || rels.hierarchicalChildren || []).forEach(c => {{
-                const cid = c.obo_id || c.short_form || c.label;
-                if (!cid) return;
-                customNodes.push({{
-                  id: cid,
-                  iri: c.iri || "",
-                  label: c.label || cid,
-                  ontology: c.ontology_prefix || "OLS",
-                  definition: Array.isArray(c.description) ? (c.description[0] || "") : "",
-                  is_target: false,
-                  is_root: false,
-                  depth: 1,
-                  on_root_path: false,
-                  parents: [],
-                  children: []
-                }});
-                const rtype = c.relation_type || "subClassOf";
-                customEdges.push({{
-                  id: tid + "->" + cid + ":" + rtype,
-                  source: tid,
-                  target: cid,
-                  type: rtype,
-                  is_hierarchical: rtype !== "subClassOf",
-                  on_root_path: false,
-                  style: {{
-                    stroke: resolveRelationColor(rtype),
-                    pattern: rtype === "subClassOf" ? "solid" : "dashed",
-                    dasharray: rtype === "subClassOf" ? "none" : "6,4"
-                  }}
-                }});
-                customNodes[0].children.push({{ id: cid, label: c.label || cid, relation: rtype }});
-              }});
-              const synthesized = {{
-                title: "EMBL-EBI OLS Hierarchy Explorer: " + tlabel + " (" + tid + ")",
-                target_term: customNodes[0],
-                nodes: customNodes,
-                edges: customEdges,
-                tree: {{
-                  id: tid,
-                  label: tlabel,
-                  is_target: true,
-                  relation_to_parent: "root",
-                  children: customNodes.filter(n => n.depth > 0).map(c => ({{
-                    id: c.id,
-                    label: c.label,
-                    is_target: false,
-                    relation_to_parent: "subClassOf",
-                    children: []
-                  }}))
-                }},
-                root_paths: [[tid]],
-                metrics: {{
-                  node_count: customNodes.length,
-                  edge_count: customEdges.length,
-                  ancestor_count: customNodes.filter(n => n.depth < 0).length,
-                  direct_parent_count: customNodes[0].parents.length,
-                  direct_child_count: customNodes[0].children.length,
-                  relation_counts: {{ subClassOf: customEdges.length }}
-                }},
-                ontology_profile: activeData.ontology_profile,
-                repository_stats: activeData.repository_stats
-              }};
-              registerDataset(synthesized);
-              loadActivePayload(synthesized, {{ preserveViewport: false }});
-            }}
+            const parsed = JSON.parse(String(evt.target.result || ""));
+            const payload = processUploadedJson(parsed, file.name);
+            showUploadError("");
+            registerDataset(payload);
+            loadActivePayload(payload, {{ preserveViewport: false }});
           }} catch (err) {{
-            console.error("Failed to parse uploaded JSON:", err);
+            showUploadError(err && err.message ? err.message : String(err));
           }}
         }};
+        reader.onerror = function() {{
+          showUploadError("could not read the file.");
+        }};
         reader.readAsText(file);
+        e.target.value = "";
       }});
+
+      window.__OLS_PROCESS_UPLOAD__ = processUploadedJson;
 
       // Search Filtering
       document.getElementById("node-search-input").addEventListener("input", function() {{
         searchQuery = this.value.trim().toLowerCase();
         if (!window.d3) return;
         const d3 = window.d3;
-        d3.selectAll(".node-item").attr("opacity", d => {{
-          if (!searchQuery) return 1.0;
-          const match = (d.label || "").toLowerCase().includes(searchQuery) || (d.id || "").toLowerCase().includes(searchQuery);
-          return match ? 1.0 : 0.2;
-        }});
+        d3.selectAll(".node-item").attr("opacity", d => (!searchQuery || nodeMatchesSearch(d)) ? 1.0 : 0.2);
+        d3.selectAll(".tree-node").attr("opacity", d => (!searchQuery || nodeMatchesSearch(d.data)) ? 1.0 : 0.25);
+        // Matching terms get label priority, so their labels show first.
+        refreshGraphLabels();
       }});
 
       // Root Path Highlight Toggle
@@ -2525,12 +3270,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
       // Reset View
       document.getElementById("btn-reset-zoom").addEventListener("click", function() {{
-        rotY = 0.45;
-        rotX = 0.22;
-        zoom3d = 1.0;
+        resetCamera3D();
         dagZoomTransform = null;
         treeZoomTransform = null;
         collapsedTreeIds.clear();
+        treeStateInitialized = false;
         renderDagView(false);
         renderCollapsibleTreeView(false);
       }});

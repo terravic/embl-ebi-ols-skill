@@ -31,7 +31,6 @@ def get_ontology(
     include_roots: bool = True,
     page: int = 0,
     size: int = 20,
-    mock: bool = False,
 ) -> dict[str, Any]:
   """Fetches metadata for a specific ontology or lists indexed ontologies.
 
@@ -41,7 +40,6 @@ def get_ontology(
     include_roots: If True and `ontology` is specified, attaches root terms under `roots`.
     page: Zero-based page index when `list_all=True`.
     size: Page size when `list_all=True`.
-    mock: If True, returns local synthetic mock data.
 
   Returns:
     Ontology metadata dictionary.
@@ -52,19 +50,16 @@ def get_ontology(
     return ols_utils.make_request(
         f"{ols_utils.BASE_URL}/ontologies",
         params={"page": page, "size": size},
-        mock=mock,
     )
 
   slug = ontology.strip().lower()
   onto_data = ols_utils.make_request(
       f"{ols_utils.BASE_URL}/ontologies/{slug}",
-      mock=mock,
   )
 
   if include_roots and "roots" not in onto_data:
     roots_resp = ols_utils.make_request(
         f"{ols_utils.BASE_URL}/ontologies/{slug}/terms/roots",
-        mock=mock,
     )
     onto_data["roots"] = ols_utils.extract_embedded_list(roots_resp, "terms")
 
@@ -109,11 +104,6 @@ def build_parser() -> argparse.ArgumentParser:
       required=True,
       help="Output JSON file path.",
   )
-  parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Use local synthetic mock data from sample_data/ without network calls.",
-  )
   return parser
 
 
@@ -128,7 +118,6 @@ def main(argv: list[str] | None = None) -> int:
         include_roots=not args.no_roots,
         page=args.page,
         size=args.size,
-        mock=args.mock,
     )
     out_path = ols_utils.write_json_output(result, args.output)
     print(f"Ontology metadata saved to {out_path}.")

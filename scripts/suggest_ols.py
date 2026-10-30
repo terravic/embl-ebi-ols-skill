@@ -30,7 +30,6 @@ def suggest_ols(
     ontology: str | None = None,
     rows: int = 10,
     start: int = 0,
-    mock: bool = False,
 ) -> dict[str, Any]:
   """Queries the OLS4 `/suggest` autocomplete endpoint.
 
@@ -39,7 +38,6 @@ def suggest_ols(
     ontology: Optional ontology filter slug.
     rows: Number of suggestions to return.
     start: Pagination offset.
-    mock: If True, uses local synthetic fixtures.
 
   Returns:
     OLS4 suggestion response dictionary.
@@ -62,7 +60,6 @@ def suggest_ols(
   return ols_utils.make_request(
       f"{ols_utils.BASE_URL}/suggest",
       params=params,
-      mock=mock,
   )
 
 
@@ -96,11 +93,6 @@ def build_parser() -> argparse.ArgumentParser:
       required=True,
       help="Output JSON file path.",
   )
-  parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Use local synthetic mock data from sample_data/ without network calls.",
-  )
   return parser
 
 
@@ -114,7 +106,6 @@ def main(argv: list[str] | None = None) -> int:
         ontology=args.ontology,
         rows=args.rows,
         start=args.start,
-        mock=args.mock,
     )
     out_path = ols_utils.write_json_output(result, args.output)
     docs = result.get("response", {}).get("docs", [])

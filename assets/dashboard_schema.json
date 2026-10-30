@@ -3,12 +3,13 @@
   "$id": "https://www.ebi.ac.uk/ols4/schemas/embl-ebi-ols-visualize-dashboard.json",
   "title": "EMBL-EBI OLS Visualize Dashboard Payload",
   "type": "object",
-  "required": ["title", "target_term", "nodes", "edges", "tree", "metrics", "citations", "disclaimer"],
+  "required": ["title", "source", "target_term", "nodes", "edges", "trees", "metrics", "citations", "disclaimer"],
   "properties": {
     "title": { "type": "string" },
     "generated_at": { "type": "string" },
+    "source": { "type": "string", "enum": ["live", "upload", "example"] },
     "target_term": {
-      "type": "object",
+      "type": ["object", "null"],
       "required": ["id", "label", "ontology"],
       "properties": {
         "id": { "type": "string" },
@@ -70,7 +71,8 @@
         }
       }
     },
-    "tree": { "type": "object" },
+    "trees": { "type": "array", "items": { "type": "object" } },
+    "examples": { "type": "object", "additionalProperties": { "type": "object" } },
     "root_paths": {
       "type": "array",
       "items": {

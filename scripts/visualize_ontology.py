@@ -37,28 +37,22 @@ def profile_ontology(ontology_data: dict[str, Any] | None) -> dict[str, Any] | N
     config = {}
 
   ontology_id = str(
-      ontology_data.get("ontologyId")
-      or config.get("namespace")
-      or "unknown"
+      ontology_data.get("ontologyId") or config.get("namespace") or ""
   ).lower()
-  preferred_prefix = str(
-      config.get("preferredPrefix") or ontology_id.upper()
-  )
-  title = str(config.get("title") or f"{preferred_prefix} Ontology")
+  preferred_prefix = str(config.get("preferredPrefix") or "")
+  title = str(config.get("title") or "")
   description = str(config.get("description") or "")
-  version = str(
-      ontology_data.get("version") or config.get("version") or "N/A"
-  )
+  version = str(ontology_data.get("version") or config.get("version") or "")
   loaded = str(ontology_data.get("loaded") or "")
   updated = str(ontology_data.get("updated") or "")
-  status = str(ontology_data.get("status") or "LOADED")
+  status = str(ontology_data.get("status") or "")
   homepage = str(config.get("homepage") or "")
   tracker = str(config.get("tracker") or "")
 
   license_info = config.get("license")
   if isinstance(license_info, dict):
     license_norm = {
-        "label": str(license_info.get("label") or "Open Access"),
+        "label": str(license_info.get("label") or ""),
         "url": str(license_info.get("url") or ""),
     }
   else:
@@ -67,7 +61,7 @@ def profile_ontology(ontology_data: dict[str, Any] | None) -> dict[str, Any] | N
         annotations.get("license", []) if isinstance(annotations, dict) else []
     )
     license_norm = {
-        "label": "Open Access",
+        "label": "",
         "url": str(lic_urls[0]) if lic_urls else "",
     }
 
@@ -77,6 +71,8 @@ def profile_ontology(ontology_data: dict[str, Any] | None) -> dict[str, Any] | N
     if isinstance(r, dict):
       rid = r.get("obo_id") or ols_utils.iri_to_obo_id(str(r.get("iri") or ""))
       descs = r.get("description") or []
+      if not rid:
+        continue
       roots_norm.append({
           "id": rid,
           "iri": str(r.get("iri") or ""),
@@ -84,10 +80,14 @@ def profile_ontology(ontology_data: dict[str, Any] | None) -> dict[str, Any] | N
           "description": str(descs[0]) if descs else "",
       })
 
-  num_terms = int(ontology_data.get("numberOfTerms") or 0)
-  num_props = int(ontology_data.get("numberOfProperties") or 0)
-  num_inds = int(ontology_data.get("numberOfIndividuals") or 0)
-  total_entities = max(1, num_terms + num_props + num_inds)
+  def _count(key: str) -> int | None:
+    val = ontology_data.get(key)
+    return int(val) if isinstance(val, (int, float, str)) and str(val).isdigit() else None
+
+  num_terms = _count("numberOfTerms")
+  num_props = _count("numberOfProperties")
+  num_inds = _count("numberOfIndividuals")
+  total_entities = max(1, (num_terms or 0) + (num_props or 0) + (num_inds or 0))
 
   return {
       "ontology_id": ontology_id,
@@ -104,9 +104,9 @@ def profile_ontology(ontology_data: dict[str, Any] | None) -> dict[str, Any] | N
       "number_of_properties": num_props,
       "number_of_individuals": num_inds,
       "composition_ratios": {
-          "classes_pct": round((num_terms / total_entities) * 100.0, 2),
-          "properties_pct": round((num_props / total_entities) * 100.0, 2),
-          "individuals_pct": round((num_inds / total_entities) * 100.0, 2),
+          "classes_pct": round(((num_terms or 0) / total_entities) * 100.0, 2),
+          "properties_pct": round(((num_props or 0) / total_entities) * 100.0, 2),
+          "individuals_pct": round(((num_inds or 0) / total_entities) * 100.0, 2),
       },
       "license": license_norm,
       "roots": roots_norm,
@@ -132,15 +132,22 @@ def profile_repository_stats(stats_data: dict[str, Any] | None) -> dict[str, Any
           "number_of_individuals": int(item.get("numberOfIndividuals") or 0),
       })
 
-  return {
-      "number_of_ontologies": int(stats_data.get("numberOfOntologies") or 0),
-      "number_of_classes": int(stats_data.get("numberOfClasses") or 0),
-      "number_of_properties": int(stats_data.get("numberOfProperties") or 0),
-      "number_of_individuals": int(stats_data.get("numberOfIndividuals") or 0),
+  def _count(key: str) -> int | None:
+    val = stats_data.get(key)
+    return int(val) if isinstance(val, (int, float)) else None
+
+  profile: dict[str, Any] = {
+      "number_of_ontologies": _count("numberOfOntologies"),
+      "number_of_classes": _count("numberOfClasses"),
+      "number_of_properties": _count("numberOfProperties"),
+      "number_of_individuals": _count("numberOfIndividuals"),
       "last_modified": str(stats_data.get("lastModified") or ""),
-      "version": str(stats_data.get("version") or "4.0"),
-      "top_ontologies": top_ontologies,
   }
+  if stats_data.get("version"):
+    profile["version"] = str(stats_data["version"])
+  if top_ontologies:
+    profile["top_ontologies"] = top_ontologies
+  return profile
 
 
 def build_ontology_visualization_payload(

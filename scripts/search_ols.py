@@ -47,7 +47,6 @@ def search_ols(
     all_children_of: str | None = None,
     rows: int = 10,
     start: int = 0,
-    mock: bool = False,
 ) -> dict[str, Any]:
   """Executes a full-text search against the OLS4 `/search` endpoint.
 
@@ -63,7 +62,6 @@ def search_ols(
     all_children_of: Optional OBO ID or IRI restricting results across hierarchical relations.
     rows: Maximum number of results to return.
     start: Zero-based pagination offset.
-    mock: If True, returns synthetic offline search fixtures.
 
   Returns:
     OLS4 search response dictionary.
@@ -100,7 +98,6 @@ def search_ols(
   return ols_utils.make_request(
       f"{ols_utils.BASE_URL}/search",
       params=params,
-      mock=mock,
   )
 
 
@@ -170,11 +167,6 @@ def build_parser() -> argparse.ArgumentParser:
       required=True,
       help="Output JSON file path.",
   )
-  parser.add_argument(
-      "--mock",
-      action="store_true",
-      help="Use local synthetic mock data from sample_data/ without network calls.",
-  )
   return parser
 
 
@@ -195,7 +187,6 @@ def main(argv: list[str] | None = None) -> int:
         all_children_of=args.all_children_of,
         rows=args.rows,
         start=args.start,
-        mock=args.mock,
     )
     out_path = ols_utils.write_json_output(result, args.output)
     docs = result.get("response", {}).get("docs", [])

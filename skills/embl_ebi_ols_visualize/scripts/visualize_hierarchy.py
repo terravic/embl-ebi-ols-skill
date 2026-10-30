@@ -91,7 +91,26 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
         "category": "regulatory",
         "display_label": "regulates",
     },
+    # OLS4 `hierarchicalParents`/`hierarchicalChildren` items that do not state
+    # which hierarchical property links them (and no `/graph` edge resolves it).
+    "hierarchical": {
+        "is_hierarchical": True,
+        "stroke": "#D97706",
+        "color": "#D97706",
+        "pattern": "dashed",
+        "dasharray": "2,3",
+        "category": "hierarchical",
+        "display_label": "hierarchical",
+    },
 }
+
+# OLS4 `/graph` edges are serialized subject -> object (e.g. child subClassOf
+# parent). These relations point from the whole/parent to the part/child, so
+# they are kept as-is instead of being reversed for top-down display.
+INVERSE_GRAPH_RELATIONS: frozenset[str] = frozenset({
+    "has_part",
+    "bfo_0000051",
+})
 
 EXTERNAL_DB_URL_TEMPLATES: dict[str, str] = {
     "MESH": "https://meshb.nlm.nih.gov/record/ui?ui={id}",
@@ -110,10 +129,16 @@ EXTERNAL_DB_URL_TEMPLATES: dict[str, str] = {
 }
 
 
-def canonical_node_id(item: dict[str, Any] | str) -> str:
-  """Extracts a canonical OBO ID (or IRI fallback) from a term object or string."""
+def canonical_node_id(item: dict[str, Any] | str) -> str | None:
+  """Extracts a canonical OBO ID (or IRI) from a term object or string.
+
+  Returns None when the item carries no usable identifier, so callers can skip
+  it instead of inventing a placeholder ID.
+  """
   if isinstance(item, str):
-    return ols_utils.iri_to_obo_id(item) or item
+    return (ols_utils.iri_to_obo_id(item) or item.strip()) or None
+  if not isinstance(item, dict):
+    return None
   obo_id = item.get("obo_id")
   if obo_id and isinstance(obo_id, str) and obo_id.strip():
     return obo_id.strip()
@@ -123,15 +148,15 @@ def canonical_node_id(item: dict[str, Any] | str) -> str:
     if prefix.isalpha():
       return f"{prefix.upper()}:{local}"
   iri = item.get("iri") or item.get("id")
-  if iri and isinstance(iri, str):
-    return ols_utils.iri_to_obo_id(iri)
-  return "UNKNOWN:0000000"
+  if iri and isinstance(iri, str) and iri.strip():
+    return ols_utils.iri_to_obo_id(iri) or iri.strip()
+  return None
 
 
 def normalize_relation_type(raw_rel: str | None) -> str:
   """Normalizes an OLS4 edge label or property URI to a semantic relation type."""
   if not raw_rel:
-    return "subClassOf"
+    return "hierarchical"
   cleaned = raw_rel.strip()
   lower = cleaned.lower().replace(" ", "_")
   if lower in ("subclassof", "is_a", "is-a", "rdfs:subclassof") or cleaned.endswith(
@@ -165,11 +190,11 @@ def classify_edge_style(relation_type: str) -> dict[str, Any]:
     return dict(EDGE_STYLE_MAP[norm])
   return {
       "is_hierarchical": True,
-      "stroke": "#E11D48",
-      "color": "#E11D48",
+      "stroke": "#78716C",
+      "color": "#78716C",
       "pattern": "dotted",
       "dasharray": "4,3",
-      "category": "custom",
+      "category": "other",
       "display_label": norm,
   }
 
@@ -187,8 +212,10 @@ def extract_synonyms(term_obj: dict[str, Any]) -> list[dict[str, Any]]:
       name = str(syn.get("name", "")).strip()
       if not name:
         continue
-      raw_scope = str(syn.get("scope") or "EXACT").upper()
-      if "EXACT" in raw_scope:
+      raw_scope = str(syn.get("scope") or "").upper()
+      if not raw_scope:
+        scope = ""
+      elif "EXACT" in raw_scope:
         scope = "EXACT"
       elif "BROAD" in raw_scope:
         scope = "BROAD"
@@ -210,7 +237,7 @@ def extract_synonyms(term_obj: dict[str, Any]) -> list[dict[str, Any]]:
         structured.append({
             "name": name,
             "scope": scope,
-            "type": syn.get("type") or "synonym",
+            "type": syn.get("type"),
             "xrefs": xref_list,
         })
 
@@ -221,10 +248,11 @@ def extract_synonyms(term_obj: dict[str, Any]) -> list[dict[str, Any]]:
       if not name:
         continue
       if not any(existing["name"].lower() == name.lower() for existing in structured):
+        # Plain `synonyms` strings carry no scope in the OLS4 response.
         structured.append({
             "name": name,
-            "scope": "EXACT",
-            "type": "synonym",
+            "scope": "",
+            "type": None,
             "xrefs": [],
         })
 
@@ -249,7 +277,7 @@ def extract_xrefs(term_obj: dict[str, Any]) -> list[dict[str, Any]]:
     if not url and database.upper() in EXTERNAL_DB_URL_TEMPLATES and xid:
       url = EXTERNAL_DB_URL_TEMPLATES[database.upper()].format(id=xid)
     xrefs.append({
-        "database": database or "External",
+        "database": database,
         "id": xid,
         "description": item.get("description") or "",
         "url": url or "",
@@ -299,13 +327,18 @@ def build_hierarchy_payload(
     raise ValueError("term_data must be a JSON object dictionary.")
 
   target_id = canonical_node_id(term_data)
+  if not target_id:
+    raise ValueError(
+        "Term payload has no identifier (obo_id, short_form, or iri)."
+    )
   target_label = str(term_data.get("label") or target_id)
   target_iri = str(
-      term_data.get("iri") or ols_utils.obo_id_to_iri(target_id)
+      term_data.get("iri")
+      or (ols_utils.obo_id_to_iri(target_id) if ":" in target_id else target_id)
   )
   ontology_slug = str(
       term_data.get("ontology_name")
-      or (target_id.split(":", 1)[0].lower() if ":" in target_id else "ols")
+      or (target_id.split(":", 1)[0].lower() if ":" in target_id else "")
   )
   ontology_prefix = str(
       term_data.get("ontology_prefix")
@@ -315,9 +348,11 @@ def build_hierarchy_payload(
   nodes_by_id: dict[str, dict[str, Any]] = {}
   iri_to_id: dict[str, str] = {}
 
-  def register_node(raw: dict[str, Any], is_target: bool = False) -> str:
+  def register_node(raw: dict[str, Any], is_target: bool = False) -> str | None:
     nid = canonical_node_id(raw)
-    n_iri = str(raw.get("iri") or ( ols_utils.obo_id_to_iri(nid) if ":" in nid else nid ))
+    if not nid:
+      return None
+    n_iri = str(raw.get("iri") or (ols_utils.obo_id_to_iri(nid) if ":" in nid else nid))
     iri_to_id[n_iri] = nid
     iri_to_id[nid] = nid
 
@@ -326,7 +361,8 @@ def build_hierarchy_payload(
     defn = _extract_definition(raw) or (existing["definition"] if existing else "")
     onto_pref = str(
         raw.get("ontology_prefix")
-        or (nid.split(":", 1)[0].upper() if ":" in nid else ontology_prefix)
+        or (existing["ontology"] if existing else "")
+        or (nid.split(":", 1)[0].upper() if ":" in nid else "")
     )
     is_root = bool(raw.get("is_root", False)) or (
         existing["is_root"] if existing else False
@@ -363,6 +399,10 @@ def build_hierarchy_payload(
   if not isinstance(relations, dict):
     relations = {}
 
+  def rel_list(key: str) -> list[dict[str, Any]]:
+    items = relations.get(key) or term_data.get(key) or []
+    return [i for i in items if isinstance(i, dict)] if isinstance(items, list) else []
+
   # Register all nodes from relation lists
   for rel_key in (
       "parents",
@@ -374,11 +414,8 @@ def build_hierarchy_payload(
       "hierarchicalAncestors",
       "hierarchicalDescendants",
   ):
-    rel_items = relations.get(rel_key) or term_data.get(rel_key) or []
-    if isinstance(rel_items, list):
-      for item in rel_items:
-        if isinstance(item, dict):
-          register_node(item)
+    for item in rel_list(rel_key):
+      register_node(item)
 
   # Register nodes from embedded `graph` block if present
   graph_block = relations.get("graph") or term_data.get("graph")
@@ -389,21 +426,26 @@ def build_hierarchy_payload(
 
   # Collect and deduplicate directed edges (parent/whole -> child/part)
   edges_by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
+  edge_pairs: set[tuple[str, str]] = set()
 
-  def add_edge(src_raw: str, tgt_raw: str, raw_type: str | None) -> None:
-    src_id = iri_to_id.get(src_raw) or ols_utils.iri_to_obo_id(src_raw)
-    tgt_id = iri_to_id.get(tgt_raw) or ols_utils.iri_to_obo_id(tgt_raw)
+  def resolve_id(raw: str) -> str | None:
+    if not raw:
+      return None
+    return iri_to_id.get(raw) or canonical_node_id(raw)
+
+  def add_edge(src_id: str | None, tgt_id: str | None, raw_type: str | None) -> None:
     if not src_id or not tgt_id or src_id == tgt_id:
       return
-    if src_id not in nodes_by_id:
-      register_node({"obo_id": src_id, "label": src_id})
-    if tgt_id not in nodes_by_id:
-      register_node({"obo_id": tgt_id, "label": tgt_id})
-
+    if src_id not in nodes_by_id or tgt_id not in nodes_by_id:
+      return
     rel_type = normalize_relation_type(raw_type)
+    # An untyped hierarchical link adds nothing if a typed edge already exists.
+    if rel_type == "hierarchical" and (src_id, tgt_id) in edge_pairs:
+      return
     style_meta = classify_edge_style(rel_type)
     key = (src_id, tgt_id, rel_type)
     if key not in edges_by_key:
+      edge_pairs.add((src_id, tgt_id))
       edges_by_key[key] = {
           "id": f"{src_id}->{tgt_id}:{rel_type}",
           "source": src_id,
@@ -421,123 +463,92 @@ def build_hierarchy_payload(
           },
       }
 
-  # 1. Explicit graph edges (normalize orientation so parent -> child)
-  # Note: OLS4 `/graph` edges sometimes point child->parent or parent->child depending
-  # on ontology serializations. We check against known ancestors/children to orient
-  # consistently from ancestor/parent -> target -> child/descendant.
-  ancestor_ids: set[str] = set()
-  for k in ("parents", "ancestors", "hierarchicalParents", "hierarchicalAncestors"):
-    for item in relations.get(k) or term_data.get(k) or []:
-      if isinstance(item, dict):
-        ancestor_ids.add(canonical_node_id(item))
-
-  descendant_ids: set[str] = set()
-  for k in ("children", "descendants", "hierarchicalChildren", "hierarchicalDescendants"):
-    for item in relations.get(k) or term_data.get(k) or []:
-      if isinstance(item, dict):
-        descendant_ids.add(canonical_node_id(item))
-
+  # 1. `/graph` edges. OLS4 serializes them subject -> object (child -> parent
+  # for subClassOf / part_of). Reverse them for top-down display, except for
+  # relations that already point whole -> part (e.g. has_part).
   if isinstance(graph_block, dict):
     for gedge in graph_block.get("edges") or []:
       if not isinstance(gedge, dict):
         continue
-      raw_src = str(gedge.get("source") or "")
-      raw_tgt = str(gedge.get("target") or "")
-      label = str(gedge.get("label") or gedge.get("uri") or "subClassOf")
-      sid = iri_to_id.get(raw_src) or ols_utils.iri_to_obo_id(raw_src)
-      tid = iri_to_id.get(raw_tgt) or ols_utils.iri_to_obo_id(raw_tgt)
-
-      # If edge points from target to a known parent/ancestor, flip it so parent -> target
-      if sid == target_id and tid in ancestor_ids:
-        add_edge(tid, sid, label)
-      elif tid == target_id and sid in descendant_ids:
-        add_edge(tid, sid, label)
-      elif nodes_by_id.get(tid, {}).get("is_root") and not nodes_by_id.get(sid, {}).get("is_root"):
-        add_edge(tid, sid, label)
+      raw_label = gedge.get("label") or gedge.get("uri")
+      if not raw_label:
+        continue
+      sid = resolve_id(str(gedge.get("source") or ""))
+      tid = resolve_id(str(gedge.get("target") or ""))
+      label_key = str(raw_label).strip().lower().replace(" ", "_")
+      uri_key = str(gedge.get("uri") or "").rsplit("/", 1)[-1].lower()
+      if label_key in INVERSE_GRAPH_RELATIONS or uri_key in INVERSE_GRAPH_RELATIONS:
+        add_edge(sid, tid, str(raw_label))
       else:
-        add_edge(sid, tid, label)
+        add_edge(tid, sid, str(raw_label))
 
-  # 2. Direct parents and hierarchicalParents -> target
+  # 2. `/parents` and `/children` are OLS4's is-a (subClassOf) relations.
   direct_parent_ids: set[str] = set()
-  for p_item in relations.get("parents") or term_data.get("parents") or []:
-    if isinstance(p_item, dict):
-      pid = canonical_node_id(p_item)
+  for p_item in rel_list("parents"):
+    pid = canonical_node_id(p_item)
+    if pid:
       direct_parent_ids.add(pid)
       add_edge(pid, target_id, p_item.get("relation_type") or "subClassOf")
 
-  for hp_item in (
-      relations.get("hierarchicalParents")
-      or term_data.get("hierarchicalParents")
-      or []
-  ):
-    if isinstance(hp_item, dict):
-      hpid = canonical_node_id(hp_item)
-      rel_t = hp_item.get("relation_type")
-      if not rel_t:
-        rel_t = "subClassOf" if hpid in direct_parent_ids else "part_of"
-      # Avoid duplicate subClassOf if already added
-      add_edge(hpid, target_id, rel_t)
-
-  # 3. Target -> direct children and hierarchicalChildren
   direct_child_ids: set[str] = set()
-  for c_item in relations.get("children") or term_data.get("children") or []:
-    if isinstance(c_item, dict):
-      cid = canonical_node_id(c_item)
+  for c_item in rel_list("children"):
+    cid = canonical_node_id(c_item)
+    if cid:
       direct_child_ids.add(cid)
       add_edge(target_id, cid, c_item.get("relation_type") or "subClassOf")
 
-  for hc_item in (
-      relations.get("hierarchicalChildren")
-      or term_data.get("hierarchicalChildren")
-      or []
-  ):
-    if isinstance(hc_item, dict):
-      hcid = canonical_node_id(hc_item)
-      rel_t = hc_item.get("relation_type")
-      if not rel_t:
-        rel_t = "subClassOf" if hcid in direct_child_ids else "part_of"
-      add_edge(target_id, hcid, rel_t)
+  # 3. `/hierarchicalParents` / `/hierarchicalChildren` include is-a plus other
+  # hierarchical properties (e.g. part_of). OLS4 does not say which one, so the
+  # edge is typed from the item itself, else the is-a lists, else "hierarchical".
+  for hp_item in rel_list("hierarchicalParents"):
+    hpid = canonical_node_id(hp_item)
+    rel_t = hp_item.get("relation_type") or (
+        "subClassOf" if hpid in direct_parent_ids else None
+    )
+    add_edge(hpid, target_id, rel_t)
 
-  # 4. If ancestors exist without a `graph` block connecting them, chain unconnected
-  # ancestors into a valid lineage so every ancestor is reachable in the DAG/Tree.
+  for hc_item in rel_list("hierarchicalChildren"):
+    hcid = canonical_node_id(hc_item)
+    rel_t = hc_item.get("relation_type") or (
+        "subClassOf" if hcid in direct_child_ids else None
+    )
+    add_edge(target_id, hcid, rel_t)
+
+  # 4. Lineage records (`get_term.py --lineage`): each ancestor's own parents.
+  for rec in relations.get("lineage") or []:
+    if not isinstance(rec, dict):
+      continue
+    child_id = resolve_id(str(rec.get("iri") or "")) or canonical_node_id(rec)
+    isa_ids: set[str] = set()
+    for p_item in rec.get("parents") or []:
+      if isinstance(p_item, dict):
+        pid = canonical_node_id(p_item)
+        if pid:
+          isa_ids.add(pid)
+          add_edge(pid, child_id, p_item.get("relation_type") or "subClassOf")
+    for hp_item in rec.get("hierarchicalParents") or []:
+      if isinstance(hp_item, dict):
+        hpid = canonical_node_id(hp_item)
+        rel_t = hp_item.get("relation_type") or (
+            "subClassOf" if hpid in isa_ids else None
+        )
+        add_edge(hpid, child_id, rel_t)
+
+  # Ancestors/descendants returned without connecting edges (no `/graph` data)
+  # are not wired into an invented lineage; they are reported as unconnected.
+  connected_ids: set[str] = {target_id}
+  for (s, t, _) in edges_by_key:
+    connected_ids.add(s)
+    connected_ids.add(t)
+  unconnected_ids = sorted(nid for nid in nodes_by_id if nid not in connected_ids)
+  for nid in unconnected_ids:
+    del nodes_by_id[nid]
+
   incoming_map: dict[str, list[str]] = {nid: [] for nid in nodes_by_id}
   outgoing_map: dict[str, list[str]] = {nid: [] for nid in nodes_by_id}
   for (s, t, _) in edges_by_key:
-    outgoing_map.setdefault(s, []).append(t)
-    incoming_map.setdefault(t, []).append(s)
-
-  # Connect any isolated ancestor nodes to direct parents or root
-  anc_list = [
-      canonical_node_id(a)
-      for a in (
-          relations.get("ancestors")
-          or relations.get("hierarchicalAncestors")
-          or term_data.get("ancestors")
-          or []
-      )
-      if isinstance(a, dict)
-  ]
-  unconnected_ancs = [
-      aid
-      for aid in anc_list
-      if aid != target_id
-      and not outgoing_map.get(aid)
-      and not incoming_map.get(aid)
-  ]
-  if unconnected_ancs:
-    # Chain from root-most (last in OLS ancestors list) to direct parent
-    anchor = next(iter(direct_parent_ids), target_id)
-    chain = list(reversed(unconnected_ancs)) + [anchor]
-    for idx in range(len(chain) - 1):
-      if chain[idx] != chain[idx + 1]:
-        add_edge(chain[idx], chain[idx + 1], "subClassOf")
-
-  # Recompute adjacency maps
-  incoming_map = {nid: [] for nid in nodes_by_id}
-  outgoing_map = {nid: [] for nid in nodes_by_id}
-  for (s, t, _) in edges_by_key:
-    outgoing_map.setdefault(s, []).append(t)
-    incoming_map.setdefault(t, []).append(s)
+    outgoing_map[s].append(t)
+    incoming_map[t].append(s)
 
   # Compute relative topological depth from `target_id` via bidirectional BFS
   nodes_by_id[target_id]["depth"] = 0
@@ -561,26 +572,19 @@ def build_hierarchy_payload(
         nodes_by_id[child_id]["depth"] = d + 1
         queue_down.append((child_id, d + 1))
 
-  # Identify root nodes (explicit `is_root` or in-degree 0 among ancestors/target)
-  root_ids = [
-      nid
-      for nid, n in nodes_by_id.items()
-      if n["is_root"] or (not incoming_map.get(nid) and n["depth"] <= 0)
-  ]
-  if not root_ids:
-    # Fallback to minimum depth node
-    min_depth = min(n["depth"] for n in nodes_by_id.values())
-    root_ids = [nid for nid, n in nodes_by_id.items() if n["depth"] == min_depth]
-  for rid in root_ids:
-    if rid != target_id or len(nodes_by_id) == 1:
-      nodes_by_id[rid]["is_root"] = True
+  # Top-level nodes of this subgraph: no incoming edge. The `is_root` flag is
+  # left exactly as reported by OLS4 (ontology roots only).
+  top_ids = [nid for nid in nodes_by_id if not incoming_map.get(nid)]
+  if not top_ids:
+    # Fully cyclic subgraph: start traversal from the target term.
+    top_ids = [target_id]
 
-  # Trace shortest paths from each root to `target_id`
+  # Trace shortest paths from each top-level ancestor down to `target_id`
   root_paths: list[list[str]] = []
   root_path_nodes: set[str] = {target_id}
   root_path_pairs: set[tuple[str, str]] = set()
 
-  for rid in root_ids:
+  for rid in top_ids:
     if rid == target_id:
       root_paths.append([target_id])
       continue
@@ -599,8 +603,7 @@ def build_hierarchy_payload(
           bfs_q.append(path + [nxt])
     if found_path:
       root_paths.append(found_path)
-      for nid in found_path:
-        root_path_nodes.add(nid)
+      root_path_nodes.update(found_path)
       for i in range(len(found_path) - 1):
         root_path_pairs.add((found_path[i], found_path[i + 1]))
 
@@ -612,7 +615,7 @@ def build_hierarchy_payload(
     if (edge["source"], edge["target"]) in root_path_pairs:
       edge["on_root_path"] = True
 
-  # Build rooted hierarchical tree structure for collapsible D3 tree view
+  # Build the hierarchical forest for the collapsible D3 tree view
   edge_type_lookup: dict[tuple[str, str], str] = {}
   for (s, t, rtype) in edges_by_key:
     if (s, t) not in edge_type_lookup or rtype == "subClassOf":
@@ -632,11 +635,10 @@ def build_hierarchy_payload(
         if cid not in seen_child_ids and cid not in path_visited:
           seen_child_ids.append(cid)
       for cid in sorted(seen_child_ids, key=lambda x: nodes_by_id[x]["label"].lower()):
-        child_rel = edge_type_lookup.get((nid, cid), "subClassOf")
         children_nodes.append(
             build_tree_node(
                 cid,
-                child_rel,
+                edge_type_lookup[(nid, cid)],
                 path_visited | {cid},
                 current_depth + 1,
             )
@@ -656,29 +658,8 @@ def build_hierarchy_payload(
         "children": children_nodes,
     }
 
-  sorted_roots = sorted(root_ids, key=lambda x: nodes_by_id[x]["label"].lower())
-  if len(sorted_roots) == 1:
-    tree_root = build_tree_node(
-        sorted_roots[0], "root", frozenset({sorted_roots[0]}), 0
-    )
-  else:
-    tree_root = {
-        "id": f"{ontology_prefix}:ROOT",
-        "name": f"{ontology_prefix} Hierarchy Root",
-        "label": f"{ontology_prefix} Hierarchy Root",
-        "ontology": ontology_prefix,
-        "definition": f"Virtual root aggregating top-level terms for {ontology_prefix}.",
-        "relation_to_parent": "root",
-        "is_target": False,
-        "is_root": True,
-        "is_obsolete": False,
-        "on_root_path": True,
-        "depth": min((n["depth"] for n in nodes_by_id.values()), default=0) - 1,
-        "children": [
-            build_tree_node(rid, "root", frozenset({rid}), 0)
-            for rid in sorted_roots
-        ],
-    }
+  sorted_tops = sorted(top_ids, key=lambda x: nodes_by_id[x]["label"].lower())
+  trees = [build_tree_node(rid, "root", frozenset({rid}), 0) for rid in sorted_tops]
 
   # Populate direct parents and direct children on every node for inspector navigation
   for nid, n_meta in nodes_by_id.items():
@@ -690,7 +671,7 @@ def build_hierarchy_payload(
         p_list.append({
             "id": pid,
             "label": nodes_by_id[pid]["label"],
-            "relation": edge_type_lookup.get((pid, nid), "subClassOf"),
+            "relation": edge_type_lookup[(pid, nid)],
         })
     c_list: list[dict[str, str]] = []
     seen_c: set[str] = set()
@@ -700,7 +681,7 @@ def build_hierarchy_payload(
         c_list.append({
             "id": cid,
             "label": nodes_by_id[cid]["label"],
-            "relation": edge_type_lookup.get((nid, cid), "subClassOf"),
+            "relation": edge_type_lookup[(nid, cid)],
         })
     n_meta["parents"] = p_list
     n_meta["children"] = c_list
@@ -770,6 +751,7 @@ def build_hierarchy_payload(
           "max_depth": max(depths),
           "depth_span": (max(depths) - min(depths)) + 1,
           "shortest_root_paths": len(root_paths),
+          "unconnected_nodes": len(unconnected_ids),
           "scoped_synonyms": len(target_node["synonyms"]),
           "resolved_xrefs": len(target_node["xrefs"]),
           "relation_breakdown": relation_counts,
@@ -785,9 +767,7 @@ def build_hierarchy_payload(
           "comments": target_node["comments"],
           "is_obsolete": target_node["is_obsolete"],
           "term_replaced_by": term_data.get("term_replaced_by"),
-          "is_defining_ontology": bool(
-              term_data.get("is_defining_ontology", True)
-          ),
+          "is_defining_ontology": term_data.get("is_defining_ontology"),
           "is_root": target_node["is_root"],
           "subsets": target_node["subsets"],
           "synonyms": target_node["synonyms"],
@@ -797,7 +777,7 @@ def build_hierarchy_payload(
       },
       "nodes": nodes_list,
       "edges": edges_list,
-      "tree": tree_root,
+      "trees": trees,
       "root_paths": root_paths,
       "metrics": {
           "node_count": len(nodes_list),
