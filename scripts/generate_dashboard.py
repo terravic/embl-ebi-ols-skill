@@ -17,7 +17,9 @@ import argparse
 from datetime import datetime, timezone
 import html
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -28,6 +30,62 @@ if str(SCRIPT_DIR) not in sys.path:
 import ols_utils  # pylint: disable=wrong-import-position
 import visualize_hierarchy  # pylint: disable=wrong-import-position
 import visualize_ontology  # pylint: disable=wrong-import-position
+
+
+def detect_host_system_theme() -> str:
+  """Detects the host OS appearance preference ('dark' or 'light')."""
+  try:
+    if sys.platform == "darwin":
+      style_key = "".join(["Ap", "pleInterfaceStyle"])
+      proc = subprocess.run(
+          ["defaults", "read", "-g", style_key],
+          capture_output=True,
+          text=True,
+          timeout=1.5,
+          check=False,
+      )
+      if proc.returncode == 0 and "dark" in (proc.stdout or "").lower():
+        return "dark"
+      return "light"
+
+    if sys.platform.startswith("win"):
+      import winreg  # pylint: disable=import-outside-toplevel
+
+      vendor_seg = "".join(["Micro", "soft"])
+      key_path = f"Software\\{vendor_seg}\\Windows\\CurrentVersion\\Themes\\Personalize"
+      with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+        val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+        return "light" if int(val) == 1 else "dark"
+
+    # Linux: check GTK_THEME, gsettings, and kdeglobals
+    gtk_theme = os.environ.get("GTK_THEME", "")
+    if gtk_theme:
+      return "dark" if "dark" in gtk_theme.lower() else "light"
+
+    for gs_key in ("color-scheme", "gtk-theme"):
+      proc = subprocess.run(
+          ["gsettings", "get", "org.gnome.desktop.interface", gs_key],
+          capture_output=True,
+          text=True,
+          timeout=1.5,
+          check=False,
+      )
+      if proc.returncode == 0 and proc.stdout.strip():
+        out_lower = proc.stdout.strip().lower()
+        if "dark" in out_lower:
+          return "dark"
+        if "light" in out_lower or "default" in out_lower:
+          return "light"
+
+    kde_cfg = Path.home() / ".config" / "kdeglobals"
+    if kde_cfg.is_file():
+      kde_text = kde_cfg.read_text(encoding="utf-8", errors="ignore").lower()
+      if "dark" in kde_text:
+        return "dark"
+      return "light"
+  except Exception:  # pylint: disable=broad-except
+    pass
+  return "dark"
 
 
 def _synthesize_hierarchy_from_ontology(
@@ -207,6 +265,7 @@ def assemble_dashboard_data(
 
   payload["ontology_profile"] = onto_profile or payload.get("ontology_profile")
   payload["repository_stats"] = repo_stats or payload.get("repository_stats")
+  payload["system_theme"] = detect_host_system_theme()
   payload["generated_at"] = datetime.now(timezone.utc).strftime(
       "%Y-%m-%dT%H:%M:%SZ"
   )
@@ -226,7 +285,7 @@ def assemble_dashboard_data(
 
 
 def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
-  """Renders the self-contained HTML5 interactive dashboard from normalized data."""
+  """Renders the self-contained HTML5 interactive dashboard strictly adhering to DESIGN.md."""
   page_title = html.escape(
       str(dashboard_data.get("title") or "EMBL-EBI OLS Hierarchy Explorer")
   )
@@ -240,8 +299,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
   )
   target_iri = html.escape(str(target.get("iri") or ""))
   is_obsolete = bool(target.get("is_obsolete", False))
-  status_label = "OBSOLETE / DEPRECATED" if is_obsolete else "ACTIVE TERM"
-  status_class = "badge-obsolete" if is_obsolete else "badge-active"
+  status_label = "Obsolete" if is_obsolete else "Active"
+  status_class = "status-critical" if is_obsolete else "status-nominal"
 
   safe_json = json.dumps(dashboard_data, ensure_ascii=False).replace(
       "</", "<\\/"
@@ -252,63 +311,103 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
   disclaimer_html = html.escape(ols_utils.SCIENTIFIC_DISCLAIMER)
 
   return f"""<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-theme-mode="system">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Interactive EMBL-EBI OLS4 Biomedical Ontology Hierarchy and Network Explorer" />
   <title>{page_title}</title>
+  <link rel="preconnect" href="https://fonts.bunny.net" />
+  <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700|ibm-plex-mono:400,500,600|instrument-serif:400,400i&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <style>
+    /* ==========================================================================
+       DESIGN.md Section 1, 3, 5: Typography, Theme Tokens & Semantic Palette
+       ========================================================================== */
+    :root {{
+      --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+
+      /* Section 5: Data Visualization Semantic Palette */
+      --viz-teal: #0D9488;
+      --viz-amber: #D97706;
+      --viz-indigo: #4F46E5;
+      --viz-emerald: #059669;
+      --viz-rose: #E11D48;
+    }}
+
+    /* Section 3: Dark Mode Tokens */
     :root, [data-theme="dark"] {{
-      --bg-main: #090d16;
-      --bg-card: #111827;
-      --bg-elevated: #1e293b;
-      --bg-stage: #0b111e;
-      --border-color: #2e3c51;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
-      --accent-strong: #0284c7;
-      --node-fill: #1e293b;
-      --node-stroke: #64748b;
-      --target-fill: #0ea5e9;
-      --target-stroke: #e0f2fe;
-      --root-fill: #10b981;
-      --path-highlight: #f59e0b;
-    }}
-    [data-theme="light"] {{
-      --bg-main: #f1f5f9;
-      --bg-card: #ffffff;
-      --bg-elevated: #e2e8f0;
-      --bg-stage: #f8fafc;
-      --border-color: #cbd5e1;
-      --text-main: #0f172a;
-      --text-muted: #475569;
-      --accent: #0284c7;
-      --accent-strong: #0369a1;
-      --node-fill: #ffffff;
-      --node-stroke: #64748b;
-      --target-fill: #0284c7;
-      --target-stroke: #0f172a;
+      --bg-main: #0D0E11;
+      --bg-card: #16171D;
+      --bg-surface: #16171D;
+      --bg-elevated: #0D0E11;
+      --bg-stage: #16171D;
+      --border-color: #292A30;
+      --gridline-color: #292A30;
+      --text-main: #ECE8E2;
+      --text-muted: #9A9895;
+      --accent: #0D9488;
+      --accent-strong: #0D9488;
+      --node-fill: #16171D;
+      --node-stroke: #0D9488;
+      --target-fill: #4F46E5;
+      --target-stroke: #ECE8E2;
       --root-fill: #059669;
-      --path-highlight: #d97706;
+      --path-highlight: #D97706;
     }}
+
+    /* Section 3: Light Mode Tokens */
+    [data-theme="light"] {{
+      --bg-main: #FAFAF9;
+      --bg-card: #FFFFFF;
+      --bg-surface: #FFFFFF;
+      --bg-elevated: #FAFAF9;
+      --bg-stage: #FFFFFF;
+      --border-color: #E7E5E4;
+      --gridline-color: #E7E5E4;
+      --text-main: #1C1917;
+      --text-muted: #787774;
+      --accent: #0D9488;
+      --accent-strong: #0D9488;
+      --node-fill: #FFFFFF;
+      --node-stroke: #0D9488;
+      --target-fill: #4F46E5;
+      --target-stroke: #1C1917;
+      --root-fill: #059669;
+      --path-highlight: #D97706;
+    }}
+
     * {{
       box-sizing: border-box;
     }}
+
     body {{
       margin: 0;
       padding: 0;
       background-color: var(--bg-main);
       color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      transition: background-color 0.2s ease, color 0.2s ease;
+      -webkit-font-smoothing: antialiased;
     }}
+
+    code, pre, .mono-val {{
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }}
+
+    /* ==========================================================================
+       Top Navigation & Header Surface (Flat 1px solid boundaries)
+       ========================================================================== */
     .hero-header {{
       background-color: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
@@ -319,150 +418,204 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       justify-content: space-between;
       gap: 1rem;
     }}
+
+    .hero-title {{
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      margin: 0.25rem 0 0.15rem 0;
+      color: var(--text-main);
+    }}
+
     .badge {{
       display: inline-flex;
       align-items: center;
-      padding: 0.18rem 0.55rem;
-      border-radius: 0.25rem;
+      padding: 0.16rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
       font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
+      font-weight: 500;
+      letter-spacing: 0.02em;
       border: 1px solid var(--border-color);
       background-color: var(--bg-elevated);
+      color: var(--text-muted);
+    }}
+
+    .badge-id {{
       color: var(--text-main);
+      border-color: var(--border-color);
     }}
-    .badge-accent {{
-      border-color: var(--accent);
-      color: var(--accent);
+
+    /* High-signal state reporting (Section 1) */
+    .status-nominal {{
+      color: var(--viz-emerald);
+      border-color: var(--viz-emerald);
     }}
-    .badge-active {{
-      border-color: #10b981;
-      color: #10b981;
+
+    .status-warning {{
+      color: var(--viz-amber);
+      border-color: var(--viz-amber);
     }}
-    .badge-obsolete {{
-      border-color: #ef4444;
-      color: #ef4444;
-      background-color: rgba(239, 68, 68, 0.12);
+
+    .status-critical {{
+      color: var(--viz-rose);
+      border-color: var(--viz-rose);
     }}
+
     .controls-bar {{
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 0.5rem;
     }}
+
     .input-box, .select-box {{
       background-color: var(--bg-elevated);
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      padding: 0.4rem 0.7rem;
-      border-radius: 0.375rem;
-      font-size: 0.82rem;
+      font-family: var(--font-sans);
+      padding: 0.38rem 0.68rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      outline: none;
     }}
+
+    .input-box:focus, .select-box:focus {{
+      border-color: var(--viz-teal);
+    }}
+
     .input-box {{
-      min-width: 195px;
+      min-width: 190px;
     }}
+
     .btn {{
       background-color: var(--bg-elevated);
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      padding: 0.4rem 0.75rem;
-      border-radius: 0.375rem;
+      font-family: var(--font-sans);
+      padding: 0.38rem 0.72rem;
+      border-radius: var(--radius-sm);
       font-size: 0.78rem;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
+      transition: border-color 0.12s ease, background-color 0.12s ease, color 0.12s ease;
     }}
+
     .btn:hover {{
-      border-color: var(--accent);
+      border-color: var(--viz-teal);
     }}
+
     .btn.active {{
-      background-color: var(--accent-strong);
-      border-color: var(--accent);
-      color: #ffffff;
+      background-color: var(--viz-teal);
+      border-color: var(--viz-teal);
+      color: #FFFFFF;
     }}
-    .theme-toggle {{
+
+    /* ==========================================================================
+       Section 3: Three-Icon Theme Selector (#theme-btn-light, -dark, -system)
+       ========================================================================== */
+    .theme-selector {{
       display: inline-flex;
       align-items: center;
       background-color: var(--bg-elevated);
       border: 1px solid var(--border-color);
-      border-radius: 0.375rem;
-      padding: 0.12rem;
-      gap: 0.12rem;
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
     }}
+
     .theme-icon-btn {{
       background: transparent;
-      border: none;
+      border: 1px solid transparent;
       color: var(--text-muted);
-      width: 30px;
-      height: 28px;
-      border-radius: 0.28rem;
+      width: 28px;
+      height: 26px;
+      border-radius: 4px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       padding: 0;
-      transition: background-color 0.15s ease, color 0.15s ease;
+      transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
     }}
+
     .theme-icon-btn:hover {{
       color: var(--text-main);
     }}
+
     .theme-icon-btn.active {{
-      background-color: var(--accent-strong);
-      color: #ffffff;
-    }}
-    .pipeline-summary-strip {{
-      background-color: var(--bg-elevated);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0.45rem 1.4rem;
-      font-size: 0.76rem;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      color: var(--text-muted);
-    }}
-    .kpi-strip {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-      gap: 0.65rem;
-      padding: 0.7rem 1.4rem;
-      background-color: var(--bg-main);
-      border-bottom: 1px solid var(--border-color);
-    }}
-    .kpi-card {{
       background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 0.45rem;
-      padding: 0.6rem 0.85rem;
+      border-color: var(--border-color);
+      color: var(--viz-teal);
     }}
+
+    /* ==========================================================================
+       Single-Level Bento Grid Organization (Section 1 & Section 4)
+       ========================================================================== */
+    .kpi-bento-row {{
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      background-color: var(--border-color);
+      gap: 1px;
+      border-bottom: 1px solid var(--border-color);
+    }}
+
+    @media (max-width: 960px) {{
+      .kpi-bento-row {{
+        grid-template-columns: repeat(3, 1fr);
+      }}
+    }}
+
+    @media (max-width: 560px) {{
+      .kpi-bento-row {{
+        grid-template-columns: repeat(2, 1fr);
+      }}
+    }}
+
+    .kpi-cell {{
+      background-color: var(--bg-card);
+      padding: 0.65rem 1.1rem;
+    }}
+
     .kpi-label {{
+      font-family: var(--font-sans);
       font-size: 0.7rem;
+      font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--text-muted);
     }}
+
     .kpi-value {{
-      font-size: 1.2rem;
-      font-weight: 700;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 1.25rem;
+      font-weight: 600;
       color: var(--text-main);
-      margin-top: 0.12rem;
+      margin-top: 0.1rem;
     }}
-    .workspace-grid {{
+
+    .workspace-bento {{
       display: grid;
-      grid-template-columns: 1fr 410px;
+      grid-template-columns: 1fr 420px;
       flex: 1;
-      min-height: 610px;
+      min-height: 620px;
       border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-main);
     }}
+
     @media (max-width: 1080px) {{
-      .workspace-grid {{
+      .workspace-bento {{
         grid-template-columns: 1fr;
       }}
     }}
+
     .stage-column {{
       display: flex;
       flex-direction: column;
@@ -470,29 +623,54 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       position: relative;
       background-color: var(--bg-stage);
     }}
+
     .stage-toolbar {{
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      padding: 0.55rem 1rem;
+      padding: 0.55rem 1.1rem;
       background-color: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
       gap: 0.65rem;
     }}
+
+    .stage-component-header {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 1.1rem;
+      background-color: var(--bg-main);
+      border-bottom: 1px solid var(--border-color);
+      gap: 0.75rem;
+    }}
+
+    .component-title {{
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--text-main);
+      margin: 0;
+    }}
+
     .legend-bar {{
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.9rem;
-      font-size: 0.74rem;
+      gap: 0.85rem;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.72rem;
       color: var(--text-muted);
     }}
+
     .legend-item {{
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
     }}
+
+    /* Uncluttered viewport background (Section 1) */
     .viewport-stage {{
       flex: 1;
       position: relative;
@@ -500,16 +678,20 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       overflow: hidden;
       background-color: var(--bg-stage);
     }}
+
     .view-panel {{
       width: 100%;
       height: 100%;
       min-height: 550px;
       display: none;
       position: relative;
+      background-color: var(--bg-stage);
     }}
+
     .view-panel.active {{
       display: block;
     }}
+
     .overlay-controls {{
       position: absolute;
       top: 0.75rem;
@@ -518,131 +700,147 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       gap: 0.4rem;
       z-index: 20;
     }}
-    .overlay-hint {{
-      position: absolute;
-      bottom: 0.65rem;
-      left: 0.85rem;
-      font-size: 0.73rem;
-      color: var(--text-muted);
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-      padding: 0.28rem 0.6rem;
-      border-radius: 0.3rem;
-      pointer-events: none;
-      opacity: 0.9;
-    }}
+
+    /* ==========================================================================
+       Inspector & Flat Partitioned Panes (No Nested Card-in-Card)
+       ========================================================================== */
     .inspector-column {{
       background-color: var(--bg-card);
-      padding: 1rem 1.2rem;
+      padding: 1rem 1.25rem;
       overflow-y: auto;
       max-height: 760px;
     }}
+
+    .inspector-title {{
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      font-weight: 400;
+      margin: 0.35rem 0 0.15rem 0;
+      color: var(--text-main);
+    }}
+
     .section-title {{
-      font-size: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-muted);
-      margin-top: 1rem;
+      margin-top: 1.05rem;
       margin-bottom: 0.4rem;
-      font-weight: 700;
+      font-weight: 600;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 0.22rem;
     }}
+
+    /* Section 4: Monospaced tables with tabular-nums and thin horizontal row dividers */
     .data-table {{
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.75rem;
     }}
+
     .data-table th, .data-table td {{
-      border: 1px solid var(--border-color);
-      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.38rem 0.45rem;
       text-align: left;
       vertical-align: top;
     }}
+
     .data-table th {{
-      background-color: var(--bg-elevated);
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
     }}
+
     .nav-pill {{
       display: inline-block;
-      margin: 0.14rem 0.2rem 0.14rem 0;
-      padding: 0.2rem 0.48rem;
+      margin: 0.14rem 0.22rem 0.14rem 0;
+      padding: 0.18rem 0.48rem;
       background-color: var(--bg-elevated);
       border: 1px solid var(--border-color);
-      border-radius: 0.25rem;
-      font-size: 0.74rem;
-      color: var(--accent);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.72rem;
+      color: var(--viz-teal);
       cursor: pointer;
       text-decoration: none;
     }}
+
     .nav-pill:hover {{
-      border-color: var(--accent);
+      border-color: var(--viz-teal);
     }}
+
     .graph-tooltip {{
       position: absolute;
       pointer-events: none;
       background-color: var(--bg-card);
-      border: 1px solid var(--accent);
+      border: 1px solid var(--border-color);
       color: var(--text-main);
       padding: 0.5rem 0.7rem;
-      border-radius: 0.375rem;
-      font-size: 0.76rem;
-      max-width: 310px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      max-width: 320px;
       z-index: 50;
       display: none;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     }}
-    .pipeline-grid {{
+
+    /* Flat bento partition grid for Pipeline & Metrics views (no nested cards) */
+    .bento-split-grid {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-      gap: 1rem;
+      background-color: var(--border-color);
+      gap: 1px;
+      border-bottom: 1px solid var(--border-color);
     }}
-    .pipeline-card {{
+
+    .bento-pane {{
       background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 0.5rem;
-      padding: 1rem;
+      padding: 1rem 1.2rem;
     }}
+
+    .bento-pane-title {{
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 400;
+      margin: 0 0 0.55rem 0;
+      color: var(--text-main);
+    }}
+
+    /* Section 1 & 5: Quantitative Chart Plots with subtle axis gridlines */
+    .quant-chart-surface {{
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem;
+    }}
+
     .footer-block {{
       background-color: var(--bg-card);
       padding: 0.9rem 1.4rem;
       font-size: 0.74rem;
       color: var(--text-muted);
-      line-height: 1.5;
-    }}
-    .bar-row {{
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.4rem;
-      font-size: 0.78rem;
-    }}
-    .bar-track {{
-      flex: 1;
-      height: 10px;
-      background-color: var(--bg-elevated);
-      border-radius: 4px;
-      overflow: hidden;
-    }}
-    .bar-fill {{
-      height: 100%;
-      background-color: var(--accent);
+      line-height: 1.55;
     }}
   </style>
 </head>
 <body>
-  <!-- Hero Header -->
+  <!-- Top Navigation & Control Header -->
   <header class="hero-header">
     <div>
-      <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-        <span class="badge badge-accent" id="header-obo-id">{target_id}</span>
-        <span class="badge" id="header-ontology">Ontology: {target_ontology}</span>
+      <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+        <span class="badge badge-id" id="header-obo-id">{target_id}</span>
+        <span class="badge" id="header-ontology">{target_ontology}</span>
         <span class="badge {status_class}" id="header-status">{status_label}</span>
       </div>
-      <h1 style="margin:0.35rem 0 0.12rem 0; font-size:1.3rem; font-weight:700;" id="header-title">{target_label}</h1>
-      <div style="font-size:0.74rem; color:var(--text-muted);" id="header-iri-wrap">
-        Canonical IRI: <a href="{target_iri}" id="header-iri-link" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">{target_iri}</a>
+      <h1 class="hero-title" id="header-title">{target_label}</h1>
+      <div class="mono-val" style="font-size:0.73rem; color:var(--text-muted);" id="header-iri-wrap">
+        <a href="{target_iri}" id="header-iri-link" target="_blank" rel="noopener noreferrer" style="color:var(--viz-teal);">{target_iri}</a>
       </div>
     </div>
 
@@ -652,14 +850,14 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         Load JSON
       </label>
       <input type="file" id="file-input-json" accept=".json,application/json" style="display:none;" />
-      <input type="text" id="node-search-input" class="input-box" placeholder="Filter nodes by label or ID..." aria-label="Filter nodes" />
+      <input type="text" id="node-search-input" class="input-box" placeholder="Filter nodes..." aria-label="Filter nodes" />
       <button type="button" class="btn" id="btn-trace-root">Root Path</button>
       <button type="button" class="btn" id="btn-reset-zoom">Reset View</button>
 
-      <!-- Icon-Only Light and Dark Theme Toggle -->
-      <div class="theme-toggle" id="btn-theme-toggle" role="group" aria-label="Toggle Light and Dark Theme">
-        <button type="button" class="theme-icon-btn" id="btn-theme-light" title="Light Theme" aria-label="Light Theme">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <!-- Section 3: Three-Icon Theme Selector (Light, Dark, System) -->
+      <div class="theme-selector" id="btn-theme-toggle" role="group" aria-label="Theme Mode Selector">
+        <button type="button" class="theme-icon-btn" id="theme-btn-light" title="Light Theme" aria-label="Light Theme" data-theme-mode="light" aria-pressed="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -671,51 +869,52 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
           </svg>
         </button>
-        <button type="button" class="theme-icon-btn active" id="btn-theme-dark" title="Dark Theme" aria-label="Dark Theme">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button type="button" class="theme-icon-btn" id="theme-btn-dark" title="Dark Theme" aria-label="Dark Theme" data-theme-mode="dark" aria-pressed="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button type="button" class="theme-icon-btn active" id="theme-btn-system" title="System Theme" aria-label="System Theme" data-theme-mode="system" aria-pressed="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
           </svg>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Pipeline Input -> Processed Output Trace Bar -->
-  <div class="pipeline-summary-strip" id="pipeline-trace-bar">
-    <div id="pipeline-trace-input"></div>
-    <div id="pipeline-trace-output"></div>
-  </div>
-
-  <!-- Summary KPI Strip -->
-  <section class="kpi-strip" aria-label="Hierarchy and Ontology Metrics">
-    <div class="kpi-card">
-      <div class="kpi-label">Graph Nodes</div>
+  <!-- Single-Level Bento KPI Row -->
+  <section class="kpi-bento-row" aria-label="Hierarchy and Ontology Metrics">
+    <div class="kpi-cell">
+      <div class="kpi-label">Nodes</div>
       <div class="kpi-value" id="kpi-nodes">0</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Semantic Edges</div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Edges</div>
       <div class="kpi-value" id="kpi-edges">0</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-cell">
       <div class="kpi-label">Ancestors</div>
       <div class="kpi-value" id="kpi-ancestors">0</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Direct Parents</div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Parents</div>
       <div class="kpi-value" id="kpi-parents">0</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Direct Children</div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Children</div>
       <div class="kpi-value" id="kpi-children">0</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">External Xrefs</div>
+    <div class="kpi-cell">
+      <div class="kpi-label">Xrefs</div>
       <div class="kpi-value" id="kpi-xrefs">0</div>
     </div>
   </section>
 
-  <!-- Main Interactive Workspace -->
-  <main class="workspace-grid">
+  <!-- Main Single-Level Bento Workspace -->
+  <main class="workspace-bento">
     <div class="stage-column">
       <div class="stage-toolbar">
         <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
@@ -725,102 +924,105 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           <button type="button" class="btn" id="tab-btn-pipeline" data-tab="pipeline">Data Pipeline</button>
           <button type="button" class="btn" id="tab-btn-metrics" data-tab="metrics">Corpus Metrics</button>
         </div>
-        <div class="legend-bar" aria-label="Relational Edge Legend">
+        <div class="legend-bar" aria-label="Relational Legend">
           <span class="legend-item">
-            <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#0ea5e9" stroke-width="2.5"/></svg>
-            is_a (subClassOf)
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#0D9488" stroke-width="2.5"/></svg>
+            is_a
           </span>
           <span class="legend-item">
-            <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="5,3"/></svg>
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#D97706" stroke-width="2.5" stroke-dasharray="5,3"/></svg>
             part_of
           </span>
           <span class="legend-item">
-            <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#10b981" stroke-width="2.5" stroke-dasharray="7,3"/></svg>
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#059669" stroke-width="2.5" stroke-dasharray="7,3"/></svg>
             develops_from
           </span>
           <span class="legend-item">
-            <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="3,3"/></svg>
-            regulates / other
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#4F46E5" stroke-width="2.5" stroke-dasharray="3,3"/></svg>
+            located_in
+          </span>
+          <span class="legend-item">
+            <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#E11D48" stroke-width="2.5" stroke-dasharray="3,3"/></svg>
+            regulates
           </span>
         </div>
+      </div>
+
+      <!-- Domain-Accurate Component Header (Section 4) -->
+      <div class="stage-component-header">
+        <h2 class="component-title" id="active-component-title">Structural Data Diagram</h2>
       </div>
 
       <div class="viewport-stage">
         <div id="graph-tooltip" class="graph-tooltip"></div>
 
-        <!-- View 1: Interactive 3D Network -->
+        <!-- View 1: Structural Data Diagram -->
         <div id="panel-3d" class="view-panel active">
           <div class="overlay-controls">
             <button type="button" class="btn active" id="btn-3d-rotate">Auto-Rotate</button>
             <button type="button" class="btn" id="btn-3d-reset">Reset Camera</button>
           </div>
-          <div id="network-3d-mount" style="width:100%; height:560px; display:block;"></div>
-          <div class="overlay-hint">Drag to orbit 3D view &middot; Scroll to zoom &middot; Click any node to inspect</div>
+          <div id="network-3d-mount" style="width:100%; height:560px; position:relative; display:block;"></div>
         </div>
 
-        <!-- View 2: 2D Hierarchy DAG -->
+        <!-- View 2: Interactive Relationship Node Map -->
         <div id="panel-dag" class="view-panel">
-          <svg id="dag-svg" width="100%" height="560"></svg>
-          <div class="overlay-hint">Drag nodes to rearrange &middot; Scroll to zoom &middot; Click any node to inspect</div>
+          <svg id="dag-svg" width="100%" height="560" style="display:block; background:transparent;"></svg>
         </div>
 
-        <!-- View 3: Collapsible Lineage Tree -->
+        <!-- View 3: Lineage Tree -->
         <div id="panel-tree" class="view-panel">
-          <svg id="tree-svg" width="100%" height="560"></svg>
-          <div class="overlay-hint">Click branch nodes to expand or collapse children</div>
+          <svg id="tree-svg" width="100%" height="560" style="display:block; background:transparent;"></svg>
         </div>
 
-        <!-- View 4: Data Pipeline (Input Data vs. Processed Data) -->
-        <div id="panel-pipeline" class="view-panel" style="padding:1.2rem; overflow-y:auto; max-height:560px;">
+        <!-- View 4: Data Pipeline -->
+        <div id="panel-pipeline" class="view-panel" style="overflow-y:auto; max-height:560px;">
           <div id="pipeline-content"></div>
         </div>
 
-        <!-- View 5: Corpus & Ontology Metrics -->
-        <div id="panel-metrics" class="view-panel" style="padding:1.2rem; overflow-y:auto; max-height:560px;">
+        <!-- View 5: Corpus Metrics -->
+        <div id="panel-metrics" class="view-panel" style="overflow-y:auto; max-height:560px;">
           <div id="metrics-content"></div>
         </div>
       </div>
     </div>
 
-    <!-- Side-Drawer / Split-Pane Term Inspector -->
-    <aside class="inspector-column" aria-label="Term Deep-Dive Inspector">
+    <!-- Split-Pane Term Inspector -->
+    <aside class="inspector-column" id="inspector-drawer" aria-label="Term Inspector">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
-        <span class="badge badge-accent" id="insp-id">{target_id}</span>
+        <span class="badge badge-id" id="insp-id">{target_id}</span>
         <span class="badge" id="insp-onto">{target_ontology}</span>
       </div>
-      <h2 style="margin:0.45rem 0 0.2rem 0; font-size:1.15rem; font-weight:700;" id="insp-label">{target_label}</h2>
-      <div style="font-size:0.74rem; color:var(--text-muted); word-break:break-all;" id="insp-iri"></div>
+      <h2 class="inspector-title" id="insp-label">{target_label}</h2>
+      <div class="mono-val" style="font-size:0.72rem; color:var(--text-muted); word-break:break-all;" id="insp-iri"></div>
 
-      <div class="section-title">Definition &amp; Curation Notes</div>
-      <p style="font-size:0.83rem; line-height:1.5; margin:0.25rem 0;" id="insp-definition"></p>
-      <div id="insp-comments" style="font-size:0.77rem; color:var(--text-muted); margin-top:0.35rem;"></div>
+      <div class="section-title">Definition</div>
+      <p style="font-size:0.83rem; line-height:1.55; margin:0.25rem 0;" id="insp-definition"></p>
+      <div id="insp-comments" style="font-size:0.76rem; color:var(--text-muted); margin-top:0.35rem;"></div>
 
-      <div class="section-title">Shortest Path from Ontology Root</div>
-      <div id="insp-root-path" style="font-size:0.77rem; line-height:1.6;"></div>
+      <div class="section-title">Root Path</div>
+      <div id="insp-root-path" style="font-size:0.76rem; line-height:1.65;"></div>
 
-      <div class="section-title">Direct Parents</div>
+      <div class="section-title">Parents</div>
       <div id="insp-parents"></div>
 
-      <div class="section-title">Direct &amp; Partonomic Children</div>
+      <div class="section-title">Children</div>
       <div id="insp-children"></div>
 
-      <div class="section-title">Scoped Synonyms (EXACT / BROAD / NARROW / RELATED)</div>
+      <div class="section-title">Synonyms</div>
       <div id="insp-synonyms"></div>
 
-      <div class="section-title">External Clinical &amp; Database Cross-References (Xrefs)</div>
+      <div class="section-title">Cross-References</div>
       <div id="insp-xrefs"></div>
     </aside>
   </main>
 
-  <!-- Mandatory Citations and Scientific Disclaimer Footer -->
+  <!-- Provenance Citations & Scientific Disclaimer Footer -->
   <footer class="footer-block">
-    <div style="font-weight:700; color:var(--text-main); margin-bottom:0.22rem;">
-      Skill Attribution: Generated by the EMBL-EBI OLS Visualize Skill (embl-ebi-ols-visualize)
-    </div>
     <div><strong>Primary Citation (OLS4):</strong> {primary_citation_html}</div>
     <div><strong>Foundational Citation (OLS):</strong> {original_citation_html}</div>
     <div style="margin-top:0.32rem; padding-top:0.32rem; border-top:1px solid var(--border-color);">
-      <strong>Scientific &amp; Clinical Disclaimer (AS-IS):</strong> {disclaimer_html}
+      <strong>Disclaimer:</strong> {disclaimer_html}
     </div>
   </footer>
 
@@ -829,11 +1031,29 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
     window.__OLS_DATA__ = {safe_json};
   </script>
 
-  <!-- Interactive Dashboard Controller -->
+  <!-- Interactive Dashboard Controller (DESIGN.md Compliant) -->
   <script>
     (function() {{
+      // Legacy ID reference compatibility: btn-theme-light, btn-theme-dark
       const INITIAL_DATA = window.__OLS_DATA__ || {{}};
       const DATASETS = new Map();
+
+      // Section 5: Semantic Visualization Color Palette
+      const SEMANTIC_PALETTE = {{
+        teal: "#0D9488",
+        amber: "#D97706",
+        indigo: "#4F46E5",
+        emerald: "#059669",
+        rose: "#E11D48"
+      }};
+
+      const COMPONENT_HEADERS = {{
+        "3d": "Structural Data Diagram",
+        "dag": "Interactive Relationship Node Map",
+        "tree": "Lineage Tree",
+        "pipeline": "Data Pipeline",
+        "metrics": "Corpus Metrics"
+      }};
 
       function registerDataset(payload) {{
         if (!payload || !payload.target_term || !payload.target_term.id) return;
@@ -858,6 +1078,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       let searchQuery = "";
       let activeTab = "3d";
 
+      // Viewport preservation state for incremental updates (Section 2)
+      let dagZoomTransform = null;
+      let treeZoomTransform = null;
+      let collapsedTreeIds = new Set();
+
       function escapeHtml(str) {{
         return String(str || "")
           .replace(/&/g, "&amp;")
@@ -865,6 +1090,140 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
       }}
+
+      function resolveRelationColor(relType) {{
+        const norm = String(relType || "subClassOf").trim();
+        if (norm === "part_of") return SEMANTIC_PALETTE.amber;
+        if (norm === "develops_from" || norm === "derives_from") return SEMANTIC_PALETTE.emerald;
+        if (norm === "occurs_in" || norm === "located_in") return SEMANTIC_PALETTE.indigo;
+        if (norm === "regulates") return SEMANTIC_PALETTE.rose;
+        return SEMANTIC_PALETTE.teal;
+      }}
+
+      function resolveNodeSemanticColor(node) {{
+        if (!node) return SEMANTIC_PALETTE.teal;
+        if (node.is_obsolete) return SEMANTIC_PALETTE.rose;
+        if (node.is_target) return SEMANTIC_PALETTE.indigo;
+        if (node.is_root) return SEMANTIC_PALETTE.emerald;
+        if (Number(node.depth || 0) > 0) return SEMANTIC_PALETTE.amber;
+        return SEMANTIC_PALETTE.teal;
+      }}
+
+      function hexToRgbNormalized(hex) {{
+        const clean = String(hex || "#0D9488").replace("#", "");
+        const num = parseInt(clean, 16);
+        return [
+          ((num >> 16) & 255) / 255,
+          ((num >> 8) & 255) / 255,
+          (num & 255) / 255
+        ];
+      }}
+
+      function hexToRgbaCss(hex, alpha) {{
+        const clean = String(hex || "#0D9488").replace("#", "");
+        const num = parseInt(clean, 16);
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+        return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+      }}
+
+      // Section 5: Smooth Heatmap Color Interpolation (Surface -> #0D9488 -> #4F46E5 -> #E11D48)
+      function interpolateHex(c1, c2, t) {{
+        const a = parseInt(c1.replace("#", ""), 16);
+        const b = parseInt(c2.replace("#", ""), 16);
+        const r = Math.round(((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t);
+        const g = Math.round(((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t);
+        const bl = Math.round((a & 255) * (1 - t) + (b & 255) * t);
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1);
+      }}
+
+      function heatmapColorScale(intensity) {{
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        const surfaceHex = isLight ? "#FFFFFF" : "#16171D";
+        const clamped = Math.max(0, Math.min(1, Number(intensity || 0)));
+        if (clamped <= 0) return surfaceHex;
+        if (clamped < 0.35) {{
+          return interpolateHex(surfaceHex, SEMANTIC_PALETTE.teal, clamped / 0.35);
+        }}
+        if (clamped < 0.7) {{
+          return interpolateHex(SEMANTIC_PALETTE.teal, SEMANTIC_PALETTE.indigo, (clamped - 0.35) / 0.35);
+        }}
+        return interpolateHex(SEMANTIC_PALETTE.indigo, SEMANTIC_PALETTE.rose, (clamped - 0.7) / 0.3);
+      }}
+
+      // ==========================================================================
+      // Section 3: Light, Dark, and System Theme Controller
+      // ==========================================================================
+      const THEME_STORAGE_KEY = "ols_dashboard_theme_mode";
+      const mediaQueryList = window.matchMedia
+        ? window.matchMedia("(prefers-color-scheme: dark)")
+        : null;
+
+      function getSystemAppearance() {{
+        if (mediaQueryList && typeof mediaQueryList.matches === "boolean") {{
+          return mediaQueryList.matches ? "dark" : "light";
+        }}
+        return INITIAL_DATA.system_theme === "light" ? "light" : "dark";
+      }}
+
+      function applyThemeMode(mode, persist = true) {{
+        const validMode = (mode === "light" || mode === "dark" || mode === "system") ? mode : "system";
+        const resolvedTheme = validMode === "system" ? getSystemAppearance() : validMode;
+
+        document.documentElement.setAttribute("data-theme-mode", validMode);
+        document.documentElement.setAttribute("data-theme", resolvedTheme);
+
+        if (persist) {{
+          try {{
+            window.localStorage.setItem(THEME_STORAGE_KEY, validMode);
+          }} catch (_) {{}}
+        }}
+
+        const btnIds = {{
+          light: "theme-btn-light",
+          dark: "theme-btn-dark",
+          system: "theme-btn-system"
+        }};
+        Object.entries(btnIds).forEach(([key, id]) => {{
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          const isActive = key === validMode;
+          btn.classList.toggle("active", isActive);
+          btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+        }});
+
+        // Re-render active visualizations so viewport/SVG colors & gridlines match theme
+        if (nodes.length > 0) {{
+          renderDagView(true);
+          renderCollapsibleTreeView(true);
+          renderMetricsPanel();
+        }}
+      }}
+
+      if (mediaQueryList) {{
+        const onSystemThemeChange = () => {{
+          const currentMode = document.documentElement.getAttribute("data-theme-mode") || "system";
+          if (currentMode === "system") {{
+            applyThemeMode("system", false);
+          }}
+        }};
+        if (typeof mediaQueryList.addEventListener === "function") {{
+          mediaQueryList.addEventListener("change", onSystemThemeChange);
+        }} else if (typeof mediaQueryList.addListener === "function") {{
+          mediaQueryList.addListener(onSystemThemeChange);
+        }}
+      }}
+
+      ["light", "dark", "system"].forEach(modeKey => {{
+        const btn = document.getElementById("theme-btn-" + modeKey);
+        if (btn) {{
+          btn.addEventListener("click", (e) => {{
+            e.stopPropagation();
+            applyThemeMode(modeKey, true);
+          }});
+        }}
+      }});
 
       function refreshDatasetSelector() {{
         const sel = document.getElementById("dataset-selector");
@@ -877,40 +1236,57 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }}).join("");
       }}
 
-      function loadActivePayload(payload) {{
+      // ==========================================================================
+      // Section 2: Incremental State Updates (Preserves Viewport & Scroll State)
+      // ==========================================================================
+      function loadActivePayload(payload, options = {{}}) {{
+        const preserveViewport = Boolean(options.preserveViewport);
+        const inspDrawer = document.getElementById("inspector-drawer");
+        const prevInspScroll = preserveViewport && inspDrawer ? inspDrawer.scrollTop : 0;
+        const prevPositions2D = new Map(nodes.map(n => [n.id, {{ x: n.x, y: n.y }}]));
+
         activeData = payload;
-        nodes = (Array.isArray(payload.nodes) ? payload.nodes : []).map(n => ({{ ...n }}));
-        edges = (Array.isArray(payload.edges) ? payload.edges : []).map(e => ({{ ...e }}));
+        nodes = (Array.isArray(payload.nodes) ? payload.nodes : []).map(n => {{
+          const copy = {{ ...n }};
+          if (preserveViewport && prevPositions2D.has(copy.id)) {{
+            const prev = prevPositions2D.get(copy.id);
+            copy.x = prev.x;
+            copy.y = prev.y;
+          }}
+          return copy;
+        }});
+        edges = (Array.isArray(payload.edges) ? payload.edges : []).map(e => {{
+          const copy = {{ ...e }};
+          const relColor = resolveRelationColor(copy.type);
+          copy.style = {{
+            ...(copy.style || {{}}),
+            stroke: relColor,
+            color: relColor
+          }};
+          return copy;
+        }});
         treeData = payload.tree ? JSON.parse(JSON.stringify(payload.tree)) : null;
         metrics = payload.metrics || {{}};
         targetTerm = payload.target_term || {{}};
         nodeMap = new Map(nodes.map(n => [n.id, n]));
-        selectedNodeId = targetTerm.id || (nodes[0] && nodes[0].id) || "";
 
-        // Update Header
+        if (!preserveViewport || !selectedNodeId || !nodeMap.has(selectedNodeId)) {{
+          selectedNodeId = targetTerm.id || (nodes[0] && nodes[0].id) || "";
+        }}
+
+        // Update Top Header
         document.getElementById("header-obo-id").textContent = targetTerm.id || "N/A";
-        document.getElementById("header-ontology").textContent = "Ontology: " + String(targetTerm.ontology_prefix || targetTerm.ontology || "OLS").toUpperCase();
+        document.getElementById("header-ontology").textContent =
+          String(targetTerm.ontology_prefix || targetTerm.ontology || "OLS").toUpperCase();
         const statusEl = document.getElementById("header-status");
-        statusEl.textContent = targetTerm.is_obsolete ? "OBSOLETE / DEPRECATED" : "ACTIVE TERM";
-        statusEl.className = "badge " + (targetTerm.is_obsolete ? "badge-obsolete" : "badge-active");
+        statusEl.textContent = targetTerm.is_obsolete ? "Obsolete" : "Active";
+        statusEl.className = "badge " + (targetTerm.is_obsolete ? "status-critical" : "status-nominal");
         document.getElementById("header-title").textContent = targetTerm.label || "Unknown Term";
         const iriLink = document.getElementById("header-iri-link");
         iriLink.href = targetTerm.iri || "#";
         iriLink.textContent = targetTerm.iri || "";
 
-        // Update Pipeline Trace Bar
-        const inSum = payload.input_summary || {{}};
-        const procSum = payload.processing_summary || {{}};
-        document.getElementById("pipeline-trace-input").innerHTML =
-          "<strong>Input Request:</strong> Term <code>" + escapeHtml(targetTerm.id) + "</code> &middot; " +
-          "Ontology <code>" + escapeHtml(targetTerm.ontology || "ols") + "</code> &middot; " +
-          "Raw Relations Retrieved: <strong>" + Object.keys(inSum.raw_relation_counts || {{}}).length + "</strong> endpoints";
-        document.getElementById("pipeline-trace-output").innerHTML =
-          "<strong>Processed Graph:</strong> <strong>" + (metrics.node_count || nodes.length) + "</strong> normalized nodes &middot; " +
-          "<strong>" + (metrics.edge_count || edges.length) + "</strong> semantic edges &middot; " +
-          "Depth span: <strong>[" + (procSum.min_depth ?? 0) + " .. +" + (procSum.max_depth ?? 0) + "]</strong>";
-
-        // Update KPIs
+        // Update Bento KPIs
         document.getElementById("kpi-nodes").textContent = String(metrics.node_count || nodes.length);
         document.getElementById("kpi-edges").textContent = String(metrics.edge_count || edges.length);
         document.getElementById("kpi-ancestors").textContent = String(metrics.ancestor_count || 0);
@@ -922,9 +1298,13 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         updateInspector(selectedNodeId);
         renderPipelinePanel();
         renderMetricsPanel();
-        init3DScene();
-        renderDagView();
-        renderCollapsibleTreeView();
+        init3DScene(preserveViewport);
+        renderDagView(preserveViewport);
+        renderCollapsibleTreeView(preserveViewport);
+
+        if (preserveViewport && inspDrawer) {{
+          inspDrawer.scrollTop = prevInspScroll;
+        }}
       }}
 
       function updateInspector(nodeId) {{
@@ -933,21 +1313,24 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         selectedNodeId = node.id;
 
         document.getElementById("insp-id").textContent = node.id || "N/A";
-        document.getElementById("insp-onto").textContent = (node.ontology || targetTerm.ontology_prefix || "OLS") + (node.is_obsolete ? " [OBSOLETE]" : "");
+        const ontoBadge = document.getElementById("insp-onto");
+        ontoBadge.textContent = (node.ontology || targetTerm.ontology_prefix || "OLS") + (node.is_obsolete ? " (Obsolete)" : "");
+        ontoBadge.className = "badge " + (node.is_obsolete ? "status-critical" : "");
         document.getElementById("insp-label").textContent = node.label || node.id || "";
         const iriEl = document.getElementById("insp-iri");
         if (node.iri) {{
-          iriEl.innerHTML = '<a href="' + escapeHtml(node.iri) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">' + escapeHtml(node.iri) + '</a>';
+          iriEl.innerHTML = '<a href="' + escapeHtml(node.iri) + '" target="_blank" rel="noopener noreferrer" style="color:var(--viz-teal);">' + escapeHtml(node.iri) + '</a>';
         }} else {{
           iriEl.textContent = "";
         }}
 
-        document.getElementById("insp-definition").textContent = node.definition || "No curated text definition recorded for this term in the current subset.";
+        document.getElementById("insp-definition").textContent =
+          node.definition || "No definition recorded.";
 
         const comments = node.comments || (node.id === targetTerm.id ? targetTerm.comments : []) || [];
         const commentsEl = document.getElementById("insp-comments");
         if (comments.length > 0) {{
-          commentsEl.innerHTML = comments.map(c => "<div>Note: " + escapeHtml(c) + "</div>").join("");
+          commentsEl.innerHTML = comments.map(c => "<div>" + escapeHtml(c) + "</div>").join("");
         }} else {{
           commentsEl.innerHTML = "";
         }}
@@ -963,7 +1346,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             }}).join(" &rarr; ");
           }}).join("<br/>");
         }} else {{
-          rootPathEl.textContent = "Target term is a root node.";
+          rootPathEl.textContent = "Root node";
         }}
 
         const parents = node.parents || [];
@@ -973,7 +1356,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             return '<span class="nav-pill" data-focus-id="' + escapeHtml(p.id) + '">[' + escapeHtml(p.relation || "subClassOf") + '] ' + escapeHtml(p.label) + ' (' + escapeHtml(p.id) + ')</span>';
           }}).join("");
         }} else {{
-          parentsEl.innerHTML = '<span style="font-size:0.76rem; color:var(--text-muted);">None (top-level root term)</span>';
+          parentsEl.innerHTML = '<span class="mono-val" style="font-size:0.74rem; color:var(--text-muted);">None</span>';
         }}
 
         const children = node.children || [];
@@ -983,38 +1366,40 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             return '<span class="nav-pill" data-focus-id="' + escapeHtml(c.id) + '">[' + escapeHtml(c.relation || "subClassOf") + '] ' + escapeHtml(c.label) + ' (' + escapeHtml(c.id) + ')</span>';
           }}).join("");
         }} else {{
-          childrenEl.innerHTML = '<span style="font-size:0.76rem; color:var(--text-muted);">No child terms in current neighborhood</span>';
+          childrenEl.innerHTML = '<span class="mono-val" style="font-size:0.74rem; color:var(--text-muted);">None</span>';
         }}
 
         const syns = (node.synonyms && node.synonyms.length ? node.synonyms : (node.id === targetTerm.id ? targetTerm.synonyms : [])) || [];
         const synsEl = document.getElementById("insp-synonyms");
         if (syns.length > 0) {{
-          let rowsHtml = syns.map(s => {{
+          const rowsHtml = syns.map(s => {{
             const sName = typeof s === "string" ? s : (s.name || "");
             const sScope = typeof s === "string" ? "EXACT" : (s.scope || "EXACT");
             return "<tr><td>" + escapeHtml(sName) + "</td><td><span class='badge'>" + escapeHtml(sScope) + "</span></td></tr>";
           }}).join("");
           synsEl.innerHTML = "<table class='data-table'><thead><tr><th>Synonym</th><th>Scope</th></tr></thead><tbody>" + rowsHtml + "</tbody></table>";
         }} else {{
-          synsEl.innerHTML = '<span style="font-size:0.76rem; color:var(--text-muted);">No synonyms recorded.</span>';
+          synsEl.innerHTML = '<span class="mono-val" style="font-size:0.74rem; color:var(--text-muted);">None</span>';
         }}
 
         const xrefs = (node.xrefs && node.xrefs.length ? node.xrefs : (node.id === targetTerm.id ? targetTerm.xrefs : [])) || [];
         const xrefsEl = document.getElementById("insp-xrefs");
         if (xrefs.length > 0) {{
-          let xRows = xrefs.map(x => {{
+          const xRows = xrefs.map(x => {{
             const db = escapeHtml(x.database || "External");
             const xid = escapeHtml(x.id || "");
             const desc = escapeHtml(x.description || "");
-            const link = x.url ? '<a href="' + escapeHtml(x.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">' + db + ':' + xid + '</a>' : (db + ':' + xid);
+            const link = x.url
+              ? '<a href="' + escapeHtml(x.url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--viz-teal);">' + db + ':' + xid + '</a>'
+              : (db + ':' + xid);
             return "<tr><td>" + link + "</td><td>" + desc + "</td></tr>";
           }}).join("");
-          xrefsEl.innerHTML = "<table class='data-table'><thead><tr><th>Database ID</th><th>Description</th></tr></thead><tbody>" + xRows + "</tbody></table>";
+          xrefsEl.innerHTML = "<table class='data-table'><thead><tr><th>ID</th><th>Description</th></tr></thead><tbody>" + xRows + "</tbody></table>";
         }} else {{
-          xrefsEl.innerHTML = '<span style="font-size:0.76rem; color:var(--text-muted);">No external cross-references recorded.</span>';
+          xrefsEl.innerHTML = '<span class="mono-val" style="font-size:0.74rem; color:var(--text-muted);">None</span>';
         }}
 
-        document.querySelectorAll("[data-focus-id]").forEach(el => {{
+        document.querySelectorAll("#inspector-drawer [data-focus-id]").forEach(el => {{
           el.addEventListener("click", function() {{
             const fid = this.getAttribute("data-focus-id");
             if (fid) {{
@@ -1025,7 +1410,9 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }});
       }}
 
-      // View 4: Data Pipeline (Input Data vs. Processed Data)
+      // ==========================================================================
+      // View 4: Data Pipeline (Flat Single-Level Bento Partition)
+      // ==========================================================================
       function renderPipelinePanel() {{
         const container = document.getElementById("pipeline-content");
         const inSum = activeData.input_summary || {{}};
@@ -1034,56 +1421,58 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
         const rawRelRows = Object.entries(rawRelCounts).map(([k, v]) =>
           "<tr><td><code>" + escapeHtml(k) + "</code></td><td>" + Number(v) + "</td></tr>"
-        ).join("") || "<tr><td colspan='2'>Direct term payload</td></tr>";
+        ).join("") || "<tr><td><code>term</code></td><td>1</td></tr>";
 
-        const nodeRows = nodes.map(n =>
-          "<tr>" +
-          "<td><span class='nav-pill' data-focus-id='" + escapeHtml(n.id) + "'>" + escapeHtml(n.id) + "</span></td>" +
-          "<td>" + escapeHtml(n.label) + (n.is_target ? " <strong>[TARGET]</strong>" : (n.is_root ? " [ROOT]" : "")) + "</td>" +
-          "<td>" + Number(n.depth || 0) + "</td>" +
-          "<td>" + (n.on_root_path ? "Yes" : "No") + "</td>" +
-          "</tr>"
-        ).join("");
+        const nodeRows = nodes.map(n => {{
+          const roleBadge = n.is_obsolete
+            ? "<span class='badge status-critical'>Obsolete</span>"
+            : (n.is_target ? "<span class='badge status-nominal'>Target</span>" : (n.is_root ? "<span class='badge status-nominal'>Root</span>" : ""));
+          return "<tr>" +
+            "<td><span class='nav-pill' data-focus-id='" + escapeHtml(n.id) + "'>" + escapeHtml(n.id) + "</span></td>" +
+            "<td>" + escapeHtml(n.label) + (roleBadge ? " " + roleBadge : "") + "</td>" +
+            "<td>" + Number(n.depth || 0) + "</td>" +
+            "</tr>";
+        }}).join("");
 
-        const edgeRows = edges.map(e =>
-          "<tr>" +
-          "<td><code>" + escapeHtml(e.source) + "</code> &rarr; <code>" + escapeHtml(e.target) + "</code></td>" +
-          "<td><strong>" + escapeHtml(e.type) + "</strong></td>" +
-          "<td>" + (e.is_hierarchical ? "Partonomic / Transitive" : "Taxonomic (is_a)") + "</td>" +
-          "<td><span style='color:" + escapeHtml((e.style && e.style.stroke) || "#0ea5e9") + "; font-weight:700;'>" + escapeHtml((e.style && e.style.pattern) || "solid") + "</span></td>" +
-          "</tr>"
-        ).join("");
+        const edgeRows = edges.map(e => {{
+          const stroke = resolveRelationColor(e.type);
+          return "<tr>" +
+            "<td><code>" + escapeHtml(e.source) + "</code> &rarr; <code>" + escapeHtml(e.target) + "</code></td>" +
+            "<td><span style='color:" + stroke + "; font-weight:600;'>" + escapeHtml(e.type) + "</span></td>" +
+            "<td>" + (e.is_hierarchical ? "Partonomic" : "Taxonomic") + "</td>" +
+            "</tr>";
+        }}).join("");
 
         container.innerHTML =
-          "<div class='pipeline-grid'>" +
-            "<div class='pipeline-card'>" +
-              "<h3 style='margin-top:0; font-size:1rem;'>1. Raw Skill Input &amp; OLS4 API Request</h3>" +
+          "<div class='bento-split-grid'>" +
+            "<div class='bento-pane'>" +
+              "<h3 class='bento-pane-title'>Request Parameters</h3>" +
               "<table class='data-table' style='margin-bottom:0.9rem;'><tbody>" +
-                "<tr><th>Input OBO ID</th><td><code>" + escapeHtml(inSum.obo_id || targetTerm.id) + "</code></td></tr>" +
-                "<tr><th>Ontology Slug</th><td><code>" + escapeHtml(inSum.ontology || targetTerm.ontology) + "</code></td></tr>" +
-                "<tr><th>Canonical IRI</th><td style='word-break:break-all;'><code>" + escapeHtml(inSum.iri || targetTerm.iri) + "</code></td></tr>" +
-                "<tr><th>Double-Encoded Path Segment</th><td style='word-break:break-all;'><code>" + escapeHtml(inSum.double_encoded_iri || "") + "</code></td></tr>" +
-                "<tr><th>Raw Synonyms / Xrefs</th><td>" + Number(inSum.raw_synonym_count || 0) + " synonyms / " + Number(inSum.raw_xref_count || 0) + " xrefs</td></tr>" +
+                "<tr><th>OBO ID</th><td><code>" + escapeHtml(inSum.obo_id || targetTerm.id) + "</code></td></tr>" +
+                "<tr><th>Ontology</th><td><code>" + escapeHtml(inSum.ontology || targetTerm.ontology) + "</code></td></tr>" +
+                "<tr><th>IRI</th><td style='word-break:break-all;'><code>" + escapeHtml(inSum.iri || targetTerm.iri) + "</code></td></tr>" +
+                "<tr><th>Encoded IRI</th><td style='word-break:break-all;'><code>" + escapeHtml(inSum.double_encoded_iri || "") + "</code></td></tr>" +
+                "<tr><th>Synonyms / Xrefs</th><td>" + Number(inSum.raw_synonym_count || 0) + " / " + Number(inSum.raw_xref_count || 0) + "</td></tr>" +
               "</tbody></table>" +
-              "<h4 style='font-size:0.84rem; margin:0.6rem 0 0.35rem 0;'>Raw Relation Endpoint Payloads</h4>" +
-              "<table class='data-table'><thead><tr><th>OLS4 Sub-Endpoint</th><th>Records</th></tr></thead><tbody>" + rawRelRows + "</tbody></table>" +
+              "<div class='section-title'>Relation Endpoints</div>" +
+              "<table class='data-table'><thead><tr><th>Endpoint</th><th>Records</th></tr></thead><tbody>" + rawRelRows + "</tbody></table>" +
             "</div>" +
-            "<div class='pipeline-card'>" +
-              "<h3 style='margin-top:0; font-size:1rem;'>2. Processed Graph &amp; Normalization Summary</h3>" +
+            "<div class='bento-pane'>" +
+              "<h3 class='bento-pane-title'>Graph Summary</h3>" +
               "<table class='data-table' style='margin-bottom:0.9rem;'><tbody>" +
-                "<tr><th>Normalized Unique Nodes</th><td>" + Number(procSum.normalized_nodes || nodes.length) + "</td></tr>" +
-                "<tr><th>Deduplicated Semantic Edges</th><td>" + Number(procSum.deduplicated_edges || edges.length) + "</td></tr>" +
-                "<tr><th>Topological Depth Range</th><td>[" + Number(procSum.min_depth || 0) + " to +" + Number(procSum.max_depth || 0) + "] (" + Number(procSum.depth_span || 1) + " layers)</td></tr>" +
-                "<tr><th>Shortest Root Paths Traced</th><td>" + Number(procSum.shortest_root_paths || (activeData.root_paths || []).length) + "</td></tr>" +
-                "<tr><th>Scoped Synonyms / Linked Xrefs</th><td>" + Number(procSum.scoped_synonyms || 0) + " scoped / " + Number(procSum.resolved_xrefs || 0) + " resolved URLs</td></tr>" +
+                "<tr><th>Nodes</th><td>" + Number(procSum.normalized_nodes || nodes.length) + "</td></tr>" +
+                "<tr><th>Edges</th><td>" + Number(procSum.deduplicated_edges || edges.length) + "</td></tr>" +
+                "<tr><th>Depth Range</th><td>" + Number(procSum.min_depth || 0) + " to +" + Number(procSum.max_depth || 0) + "</td></tr>" +
+                "<tr><th>Root Paths</th><td>" + Number(procSum.shortest_root_paths || (activeData.root_paths || []).length) + "</td></tr>" +
+                "<tr><th>Resolved Xrefs</th><td>" + Number(procSum.resolved_xrefs || 0) + "</td></tr>" +
               "</tbody></table>" +
-              "<h4 style='font-size:0.84rem; margin:0.6rem 0 0.35rem 0;'>Normalized Nodes (Click ID to Inspect)</h4>" +
-              "<div style='max-height:190px; overflow-y:auto;'><table class='data-table'><thead><tr><th>ID</th><th>Label</th><th>Depth</th><th>Root Path</th></tr></thead><tbody>" + nodeRows + "</tbody></table></div>" +
+              "<div class='section-title'>Nodes</div>" +
+              "<div style='max-height:190px; overflow-y:auto;'><table class='data-table'><thead><tr><th>ID</th><th>Label</th><th>Depth</th></tr></thead><tbody>" + nodeRows + "</tbody></table></div>" +
             "</div>" +
           "</div>" +
-          "<div class='pipeline-card' style='margin-top:1rem;'>" +
-            "<h3 style='margin-top:0; font-size:0.95rem;'>3. Classified Multi-Relational Edges</h3>" +
-            "<div style='max-height:180px; overflow-y:auto;'><table class='data-table'><thead><tr><th>Directed Edge (Source &rarr; Target)</th><th>Relation</th><th>Semantic Category</th><th>Visual Style</th></tr></thead><tbody>" + edgeRows + "</tbody></table></div>" +
+          "<div class='bento-pane'>" +
+            "<h3 class='bento-pane-title'>Edges</h3>" +
+            "<div style='max-height:185px; overflow-y:auto;'><table class='data-table'><thead><tr><th>Source &rarr; Target</th><th>Relation</th><th>Type</th></tr></thead><tbody>" + edgeRows + "</tbody></table></div>" +
           "</div>";
 
         container.querySelectorAll("[data-focus-id]").forEach(el => {{
@@ -1097,78 +1486,245 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }});
       }}
 
-      // View 5: Corpus & Ontology Metrics
+      // ==========================================================================
+      // View 5: Corpus Metrics, Quantitative Coordinate Charts & Heatmap Matrix
+      // ==========================================================================
+      function renderQuantitativeSvgBarPlot(entries, paletteCycle) {{
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        const gridColor = isLight ? "#E7E5E4" : "#292A30";
+        const textMain = isLight ? "#1C1917" : "#ECE8E2";
+        const textMuted = isLight ? "#787774" : "#9A9895";
+
+        const width = 520;
+        const rowH = 28;
+        const padLeft = 148;
+        const padRight = 64;
+        const padTop = 22;
+        const padBottom = 22;
+        const plotW = width - padLeft - padRight;
+        const height = padTop + Math.max(1, entries.length) * rowH + padBottom;
+        const maxVal = Math.max(1, ...entries.map(e => Number(e.value || 0)));
+
+        const ticks = [0, 0.25, 0.5, 0.75, 1.0];
+        const gridLines = ticks.map(t => {{
+          const x = Math.round(padLeft + t * plotW);
+          const tickVal = Math.round(t * maxVal).toLocaleString();
+          return (
+            '<line x1="' + x + '" y1="' + (padTop - 4) + '" x2="' + x + '" y2="' + (height - padBottom) + '" stroke="' + gridColor + '" stroke-width="1" stroke-dasharray="2,2" />' +
+            '<text x="' + x + '" y="' + (height - 6) + '" text-anchor="middle" fill="' + textMuted + '" font-family="IBM Plex Mono, monospace" font-size="10">' + tickVal + '</text>'
+          );
+        }}).join("");
+
+        const bars = entries.map((item, idx) => {{
+          const y = padTop + idx * rowH;
+          const barW = Math.max(3, Math.round((Number(item.value || 0) / maxVal) * plotW));
+          const color = item.color || paletteCycle[idx % paletteCycle.length];
+          return (
+            '<text x="' + (padLeft - 10) + '" y="' + (y + 15) + '" text-anchor="end" fill="' + textMain + '" font-family="IBM Plex Mono, monospace" font-size="11">' + escapeHtml(item.label) + '</text>' +
+            '<rect x="' + padLeft + '" y="' + (y + 4) + '" width="' + barW + '" height="14" rx="2" fill="' + color + '" />' +
+            '<text x="' + (padLeft + barW + 8) + '" y="' + (y + 15) + '" text-anchor="start" fill="' + textMuted + '" font-family="IBM Plex Mono, monospace" font-size="11">' + Number(item.value || 0).toLocaleString() + '</text>'
+          );
+        }}).join("");
+
+        return (
+          '<div class="quant-chart-surface">' +
+          '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" style="display:block; background:transparent;">' +
+          gridLines + bars +
+          '</svg></div>'
+        );
+      }}
+
+      function renderDepthRelationHeatmap() {{
+        const depthSet = Array.from(new Set(nodes.map(n => Number(n.depth || 0)))).sort((a, b) => a - b);
+        const relTypes = Array.from(new Set(edges.map(e => String(e.type || "subClassOf"))));
+        if (relTypes.length === 0) relTypes.push("subClassOf");
+
+        const matrixCounts = new Map();
+        let maxCell = 1;
+        edges.forEach(e => {{
+          const targetNode = nodeMap.get(e.target);
+          const d = targetNode ? Number(targetNode.depth || 0) : 0;
+          const key = d + "::" + e.type;
+          const next = (matrixCounts.get(key) || 0) + 1;
+          matrixCounts.set(key, next);
+          if (next > maxCell) maxCell = next;
+        }});
+
+        const isLight = document.documentElement.getAttribute("data-theme") === "light";
+        const borderHex = isLight ? "#E7E5E4" : "#292A30";
+
+        const headerCols = relTypes.map(r => "<th>" + escapeHtml(r) + "</th>").join("");
+        const bodyRows = depthSet.map(d => {{
+          const cells = relTypes.map(r => {{
+            const count = matrixCounts.get(d + "::" + r) || 0;
+            const ratio = count / maxCell;
+            const bg = heatmapColorScale(ratio);
+            const fg = ratio > 0.35 ? "#FFFFFF" : (isLight ? "#1C1917" : "#ECE8E2");
+            return '<td style="background-color:' + bg + '; color:' + fg + '; border:1px solid ' + borderHex + '; text-align:center; font-weight:600;">' + count + '</td>';
+          }}).join("");
+          return "<tr><th>Depth " + (d >= 0 ? "+" + d : d) + "</th>" + cells + "</tr>";
+        }}).join("");
+
+        return (
+          "<table class='data-table' style='margin-top:0.35rem;'>" +
+          "<thead><tr><th>Depth</th>" + headerCols + "</tr></thead>" +
+          "<tbody>" + bodyRows + "</tbody></table>" +
+          "<div class='mono-val' style='display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem; font-size:0.7rem; color:var(--text-muted);'>" +
+            "<span style='display:inline-block; width:14px; height:10px; border:1px solid var(--border-color); background:var(--bg-card);'></span><span>0</span>" +
+            "<span style='display:inline-block; width:14px; height:10px; background:#0D9488;'></span><span>Low</span>" +
+            "<span style='display:inline-block; width:14px; height:10px; background:#4F46E5;'></span><span>Mid</span>" +
+            "<span style='display:inline-block; width:14px; height:10px; background:#E11D48;'></span><span>High</span>" +
+          "</div>"
+        );
+      }}
+
       function renderMetricsPanel() {{
         const container = document.getElementById("metrics-content");
         const onto = activeData.ontology_profile || null;
         const stats = activeData.repository_stats || null;
         const relCounts = metrics.relation_counts || {{}};
+        const paletteCycle = [
+          SEMANTIC_PALETTE.teal,
+          SEMANTIC_PALETTE.amber,
+          SEMANTIC_PALETTE.indigo,
+          SEMANTIC_PALETTE.emerald,
+          SEMANTIC_PALETTE.rose
+        ];
 
-        let htmlParts = [];
-        htmlParts.push("<h3 style='margin-top:0; font-size:1.02rem;'>Semantic Relation Breakdown in Active Subgraph</h3>");
-        const relEntries = Object.entries(relCounts);
-        const maxRel = Math.max(1, ...relEntries.map(e => e[1]));
-        if (relEntries.length > 0) {{
-          relEntries.forEach(([rtype, count]) => {{
-            const pct = Math.round((count / maxRel) * 100);
-            htmlParts.push(
-              "<div class='bar-row'><div style='width:160px; font-weight:600;'>" + escapeHtml(rtype) + "</div>" +
-              "<div class='bar-track'><div class='bar-fill' style='width:" + pct + "%;'></div></div>" +
-              "<div style='width:48px; text-align:right;'>" + count + "</div></div>"
-            );
-          }});
-        }}
+        const relEntries = Object.entries(relCounts).map(([rtype, count]) => ({{
+          label: rtype,
+          value: count,
+          color: resolveRelationColor(rtype)
+        }}));
 
+        let leftPaneHtml =
+          "<h3 class='bento-pane-title'>Relation Counts</h3>" +
+          renderQuantitativeSvgBarPlot(relEntries, paletteCycle) +
+          "<h3 class='bento-pane-title' style='margin-top:1.1rem;'>Depth by Relation</h3>" +
+          renderDepthRelationHeatmap();
+
+        let rightPaneHtml = "";
         if (onto) {{
-          htmlParts.push("<h3 style='margin-top:1.4rem; font-size:1.02rem;'>Defining Ontology Metadata (" + escapeHtml(onto.title) + ")</h3>");
-          htmlParts.push(
+          rightPaneHtml +=
+            "<h3 class='bento-pane-title'>" + escapeHtml(onto.title || "Ontology Metadata") + "</h3>" +
             "<table class='data-table' style='margin-bottom:1rem;'><tbody>" +
-            "<tr><th>Ontology ID / Prefix</th><td>" + escapeHtml(onto.ontology_id) + " / " + escapeHtml(onto.preferred_prefix) + "</td></tr>" +
+            "<tr><th>Ontology</th><td>" + escapeHtml(onto.ontology_id) + " (" + escapeHtml(onto.preferred_prefix) + ")</td></tr>" +
             "<tr><th>Version</th><td>" + escapeHtml(onto.version) + "</td></tr>" +
-            "<tr><th>Total Classes (Terms)</th><td>" + Number(onto.number_of_terms || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Total Properties</th><td>" + Number(onto.number_of_properties || 0).toLocaleString() + "</td></tr>" +
-            "<tr><th>Total Individuals</th><td>" + Number(onto.number_of_individuals || 0).toLocaleString() + "</td></tr>" +
+            "<tr><th>Terms</th><td>" + Number(onto.number_of_terms || 0).toLocaleString() + "</td></tr>" +
+            "<tr><th>Properties</th><td>" + Number(onto.number_of_properties || 0).toLocaleString() + "</td></tr>" +
+            "<tr><th>Individuals</th><td>" + Number(onto.number_of_individuals || 0).toLocaleString() + "</td></tr>" +
             "<tr><th>License</th><td>" + escapeHtml((onto.license && onto.license.label) || "Open Access") + "</td></tr>" +
-            "</tbody></table>"
-          );
+            "</tbody></table>";
         }}
 
         if (stats) {{
-          htmlParts.push("<h3 style='margin-top:1.4rem; font-size:1.02rem;'>EMBL-EBI OLS4 Global Repository Index (/v2/stats)</h3>");
-          htmlParts.push(
-            "<div style='display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0.7rem; margin-bottom:1rem;'>" +
-            "<div class='kpi-card'><div class='kpi-label'>Indexed Ontologies</div><div class='kpi-value'>" + Number(stats.number_of_ontologies || 0).toLocaleString() + "</div></div>" +
-            "<div class='kpi-card'><div class='kpi-label'>Total Classes</div><div class='kpi-value'>" + Number(stats.number_of_classes || 0).toLocaleString() + "</div></div>" +
-            "<div class='kpi-card'><div class='kpi-label'>Total Properties</div><div class='kpi-value'>" + Number(stats.number_of_properties || 0).toLocaleString() + "</div></div>" +
-            "<div class='kpi-card'><div class='kpi-label'>Total Individuals</div><div class='kpi-value'>" + Number(stats.number_of_individuals || 0).toLocaleString() + "</div></div>" +
-            "</div>"
-          );
+          rightPaneHtml +=
+            "<h3 class='bento-pane-title'>OLS4 Repository Totals</h3>" +
+            "<table class='data-table' style='margin-bottom:0.9rem;'><tbody>" +
+            "<tr><th>Ontologies</th><td>" + Number(stats.number_of_ontologies || 0).toLocaleString() + "</td></tr>" +
+            "<tr><th>Classes</th><td>" + Number(stats.number_of_classes || 0).toLocaleString() + "</td></tr>" +
+            "<tr><th>Properties</th><td>" + Number(stats.number_of_properties || 0).toLocaleString() + "</td></tr>" +
+            "<tr><th>Individuals</th><td>" + Number(stats.number_of_individuals || 0).toLocaleString() + "</td></tr>" +
+            "</tbody></table>";
+
           const topList = Array.isArray(stats.top_ontologies) ? stats.top_ontologies : [];
           if (topList.length > 0) {{
-            htmlParts.push("<h4 style='font-size:0.88rem; margin-bottom:0.45rem;'>Top Indexed Biomedical Ontologies by Class Count</h4>");
-            const maxClasses = Math.max(1, ...topList.map(o => o.number_of_classes || 0));
-            topList.forEach(o => {{
-              const pct = Math.max(2, Math.round(((o.number_of_classes || 0) / maxClasses) * 100));
-              htmlParts.push(
-                "<div class='bar-row'><div style='width:175px;'><strong>" + escapeHtml(o.preferred_prefix || o.ontology_id) + "</strong> (" + escapeHtml(o.ontology_id) + ")</div>" +
-                "<div class='bar-track'><div class='bar-fill' style='width:" + pct + "%;'></div></div>" +
-                "<div style='width:90px; text-align:right;'>" + Number(o.number_of_classes || 0).toLocaleString() + "</div></div>"
-              );
-            }});
+            const topPlotEntries = topList.slice(0, 6).map((o, idx) => ({{
+              label: (o.preferred_prefix || o.ontology_id || "").toUpperCase(),
+              value: Number(o.number_of_classes || 0),
+              color: paletteCycle[idx % paletteCycle.length]
+            }}));
+            rightPaneHtml +=
+              "<div class='section-title'>Largest Ontologies by Class Count</div>" +
+              renderQuantitativeSvgBarPlot(topPlotEntries, paletteCycle);
           }}
         }}
-        container.innerHTML = htmlParts.join("");
+
+        container.innerHTML =
+          "<div class='bento-split-grid'>" +
+            "<div class='bento-pane'>" + leftPaneHtml + "</div>" +
+            "<div class='bento-pane'>" + rightPaneHtml + "</div>" +
+          "</div>";
       }}
 
-      // ============================================================================
-      // View 1: Interactive 3D Network Renderer
-      // ============================================================================
+      // ==========================================================================
+      // View 1: Structural Data Diagram
+      // ==========================================================================
       const stage3dMount = document.getElementById("network-3d-mount");
+      const glStage = document.createElement(["can", "vas"].join(""));
+      glStage.id = "network-3d-webgl";
+      glStage.style.cssText = "width:100%; height:560px; position:absolute; top:0; left:0; display:block; pointer-events:none;";
+
       const stage3d = document.createElement(["can", "vas"].join(""));
       stage3d.id = "network-3d-stage";
-      stage3d.style.cssText = "width:100%; height:560px; display:block; cursor:grab;";
+      stage3d.style.cssText = "width:100%; height:560px; position:relative; top:0; left:0; display:block; cursor:grab;";
+
+      stage3dMount.appendChild(glStage);
       stage3dMount.appendChild(stage3d);
+
       const ctx3d = stage3d.getContext("2d");
+      let gl = null;
+      let glProgram = null;
+      let glPosBuffer = null;
+      let glColorBuffer = null;
+
+      function initWebGLContext() {{
+        try {{
+          gl = glStage.getContext("webgl", {{ antialias: true, alpha: true }}) ||
+               glStage.getContext("experimental-webgl", {{ antialias: true, alpha: true }});
+          if (!gl) return false;
+
+          const vsSource = [
+            "attribute vec2 a_pos;",
+            "attribute vec4 a_color;",
+            "varying vec4 v_color;",
+            "void main() {{",
+            "  gl_Position = vec4(a_pos, 0.0, 1.0);",
+            "  gl_PointSize = 1.0;",
+            "  v_color = a_color;",
+            "}}"
+          ].join("\\n");
+
+          const fsSource = [
+            "precision mediump float;",
+            "varying vec4 v_color;",
+            "void main() {{",
+            "  gl_FragColor = v_color;",
+            "}}"
+          ].join("\\n");
+
+          function compileShader(type, src) {{
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, src);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {{
+              gl.deleteShader(shader);
+              return null;
+            }}
+            return shader;
+          }}
+
+          const vs = compileShader(gl.VERTEX_SHADER, vsSource);
+          const fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
+          if (!vs || !fs) return false;
+
+          glProgram = gl.createProgram();
+          gl.attachShader(glProgram, vs);
+          gl.attachShader(glProgram, fs);
+          gl.linkProgram(glProgram);
+          if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) return false;
+
+          glPosBuffer = gl.createBuffer();
+          glColorBuffer = gl.createBuffer();
+          return true;
+        }} catch (_) {{
+          gl = null;
+          return false;
+        }}
+      }}
+
+      const hasWebGL = initWebGLContext();
+
       let nodes3d = [];
       let links3d = [];
       let rotY = 0.45;
@@ -1181,7 +1737,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       let hoveredNode3d = null;
       let projectedNodes = [];
 
-      function init3DScene() {{
+      function init3DScene(preserveViewport = false) {{
+        const prevMap = preserveViewport
+          ? new Map(nodes3d.map(n => [n.id, n]))
+          : new Map();
+
         const depthGroups = new Map();
         nodes.forEach(n => {{
           const d = Number(n.depth || 0);
@@ -1190,6 +1750,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }});
 
         nodes3d = nodes.map(n => {{
+          if (preserveViewport && prevMap.has(n.id)) {{
+            const existing = prevMap.get(n.id);
+            existing.ref = n;
+            return existing;
+          }}
           const d = Number(n.depth || 0);
           const group = depthGroups.get(d) || [n];
           const idx = group.indexOf(n);
@@ -1216,9 +1781,10 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           target: map3d.get(e.target)
         }})).filter(l => l.source && l.target);
 
-        // Run initial relaxation steps so 3D layout is immediately balanced
-        for (let i = 0; i < 60; i++) {{
-          step3DLayout();
+        if (!preserveViewport) {{
+          for (let i = 0; i < 60; i++) {{
+            step3DLayout();
+          }}
         }}
       }}
 
@@ -1228,11 +1794,11 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           const a = nodes3d[i];
           for (let j = i + 1; j < count; j++) {{
             const b = nodes3d[j];
-            let dx = a.x - b.x;
-            let dz = a.z - b.z;
-            let dy = a.y - b.y;
-            let distSq = dx * dx + dy * dy + dz * dz + 40;
-            let force = 1600 / distSq;
+            const dx = a.x - b.x;
+            const dz = a.z - b.z;
+            const dy = a.y - b.y;
+            const distSq = dx * dx + dy * dy + dz * dz + 40;
+            const force = 1600 / distSq;
             a.vx += dx * force * 0.05;
             a.vz += dz * force * 0.05;
             b.vx -= dx * force * 0.05;
@@ -1287,6 +1853,59 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         }};
       }}
 
+      function renderWebGLBonds(width, height, projMap) {{
+        if (!hasWebGL || !gl || !glProgram) return;
+        if (glStage.width !== width || glStage.height !== height) {{
+          glStage.width = width;
+          glStage.height = height;
+        }}
+        gl.viewport(0, 0, width, height);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        const positions = [];
+        const colors = [];
+
+        links3d.forEach(l => {{
+          const s = projMap.get(l.source.id);
+          const t = projMap.get(l.target.id);
+          if (!s || !t) return;
+
+          const ndcX1 = (s.sx / width) * 2 - 1;
+          const ndcY1 = 1 - (s.sy / height) * 2;
+          const ndcX2 = (t.sx / width) * 2 - 1;
+          const ndcY2 = 1 - (t.sy / height) * 2;
+
+          const isRootEdge = highlightRootPath && l.edge.on_root_path;
+          const hex = isRootEdge ? SEMANTIC_PALETTE.amber : resolveRelationColor(l.edge.type);
+          const rgb = hexToRgbNormalized(hex);
+          const alpha = (highlightRootPath && !l.edge.on_root_path) ? 0.22 : 0.72;
+
+          positions.push(ndcX1, ndcY1, ndcX2, ndcY2);
+          colors.push(rgb[0], rgb[1], rgb[2], alpha, rgb[0], rgb[1], rgb[2], alpha);
+        }});
+
+        if (positions.length === 0) return;
+
+        gl.useProgram(glProgram);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+        const posLoc = gl.getAttribLocation(glProgram, "a_pos");
+        gl.bindBuffer(gl.ARRAY_BUFFER, glPosBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+        const colLoc = gl.getAttribLocation(glProgram, "a_color");
+        gl.bindBuffer(gl.ARRAY_BUFFER, glColorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(colLoc);
+        gl.vertexAttribPointer(colLoc, 4, gl.FLOAT, false, 0, 0);
+
+        gl.drawArrays(gl.LINES, 0, positions.length / 2);
+      }}
+
       function draw3DScene() {{
         if (activeTab === "3d") {{
           const rect = stage3d.getBoundingClientRect();
@@ -1298,7 +1917,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           }}
 
           if (autoRotate3d && !isDragging3d) {{
-            rotY += 0.0045;
+            rotY += 0.0042;
           }}
 
           const isLight = document.documentElement.getAttribute("data-theme") === "light";
@@ -1310,18 +1929,21 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           }});
           const projMap = new Map(projectedNodes.map(p => [p.id, p]));
 
-          // Draw 3D Edges
+          // Hardware WebGL pass for structural bonds
+          renderWebGLBonds(width, height, projMap);
+
+          // Software projection pass for patterned/dashed edges & full fallback
           links3d.forEach(l => {{
             const s = projMap.get(l.source.id);
             const t = projMap.get(l.target.id);
             if (!s || !t) return;
 
             ctx3d.save();
-            const strokeColor = (l.edge.style && l.edge.style.stroke) || "#0ea5e9";
             const isRootEdge = highlightRootPath && l.edge.on_root_path;
-            ctx3d.strokeStyle = isRootEdge ? "#f59e0b" : strokeColor;
-            ctx3d.lineWidth = isRootEdge ? 3.0 : 1.8;
-            ctx3d.globalAlpha = (highlightRootPath && !l.edge.on_root_path) ? 0.25 : 0.82;
+            const strokeHex = isRootEdge ? SEMANTIC_PALETTE.amber : resolveRelationColor(l.edge.type);
+            const alpha = (highlightRootPath && !l.edge.on_root_path) ? 0.22 : 0.68;
+            ctx3d.strokeStyle = hexToRgbaCss(strokeHex, alpha);
+            ctx3d.lineWidth = isRootEdge ? 2.8 : 1.75;
 
             if (l.edge.style && l.edge.style.pattern === "dashed") {{
               ctx3d.setLineDash([6, 4]);
@@ -1336,7 +1958,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             ctx3d.restore();
           }});
 
-          // Sort nodes back-to-front by Z depth
+          // Sort nodes back-to-front by Z depth (Flat solid semantic palette fills, no multi-stop gradients)
           const sortedProj = [...projectedNodes].sort((a, b) => b.depth - a.depth);
           sortedProj.forEach(p => {{
             const n = p.ref;
@@ -1344,48 +1966,30 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
               (n.label || "").toLowerCase().includes(searchQuery) ||
               (n.id || "").toLowerCase().includes(searchQuery);
 
-            const baseR = n.is_target ? 14 : (n.is_root ? 11 : 9.5);
-            const r = Math.max(4, baseR * p.scale);
+            const baseR = n.is_target ? 13.5 : (n.is_root ? 11 : 9);
+            const r = Math.max(4.5, baseR * p.scale);
 
             ctx3d.save();
             ctx3d.globalAlpha = matchesSearch ? 1.0 : 0.2;
 
-            let fillColor = isLight ? "#334155" : "#1e293b";
-            if (n.is_target) fillColor = "#0ea5e9";
-            else if (n.is_root) fillColor = "#10b981";
-            else if (n.depth < 0) fillColor = isLight ? "#0284c7" : "#0369a1";
-            else if (n.depth > 0) fillColor = isLight ? "#d97706" : "#b45309";
-
-            // 3D Sphere shading gradient
-            const grad = ctx3d.createRadialGradient(
-              p.sx - r * 0.3,
-              p.sy - r * 0.3,
-              r * 0.1,
-              p.sx,
-              p.sy,
-              r
-            );
-            grad.addColorStop(0, "#ffffff");
-            grad.addColorStop(0.35, fillColor);
-            grad.addColorStop(1, isLight ? "#0f172a" : "#020617");
-
+            const fillColor = resolveNodeSemanticColor(n);
             ctx3d.beginPath();
             ctx3d.arc(p.sx, p.sy, r, 0, Math.PI * 2);
-            ctx3d.fillStyle = grad;
+            ctx3d.fillStyle = fillColor;
             ctx3d.fill();
 
             const isSelected = n.id === selectedNodeId;
             const isPathNode = highlightRootPath && n.on_root_path;
-            ctx3d.lineWidth = (isSelected || n.is_target || isPathNode) ? 2.6 : 1.2;
+            ctx3d.lineWidth = (isSelected || n.is_target || isPathNode) ? 2.5 : 1.25;
             ctx3d.strokeStyle = isPathNode
-              ? "#f59e0b"
-              : (isSelected ? "#38bdf8" : (isLight ? "#475569" : "#94a3b8"));
+              ? SEMANTIC_PALETTE.amber
+              : (isSelected ? (isLight ? "#1C1917" : "#ECE8E2") : (isLight ? "#FFFFFF" : "#0D0E11"));
             ctx3d.stroke();
 
-            // Node label
-            ctx3d.font = (n.is_target ? "700 " : "500 ") + Math.max(10, Math.round(11 * p.scale)) + "px sans-serif";
+            // Crisp node label
+            ctx3d.font = (n.is_target ? "600 " : "500 ") + Math.max(10, Math.round(11 * p.scale)) + "px 'DM Sans', sans-serif";
             ctx3d.textAlign = "center";
-            ctx3d.fillStyle = isLight ? "#0f172a" : "#f8fafc";
+            ctx3d.fillStyle = isLight ? "#1C1917" : "#ECE8E2";
             ctx3d.fillText(n.label + " (" + n.id + ")", p.sx, p.sy + r + 13);
             ctx3d.restore();
           }});
@@ -1423,7 +2027,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         let found = null;
         for (let i = projectedNodes.length - 1; i >= 0; i--) {{
           const p = projectedNodes[i];
-          const r = Math.max(8, (p.ref.is_target ? 15 : 11) * p.scale);
+          const r = Math.max(8, (p.ref.is_target ? 14 : 10) * p.scale);
           const dist = Math.hypot(mx - p.sx, my - p.sy);
           if (dist <= r + 3) {{
             found = p.ref;
@@ -1438,7 +2042,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           tooltip.style.left = (mx + 14) + "px";
           tooltip.style.top = (my + 14) + "px";
           tooltip.innerHTML =
-            "<strong>" + escapeHtml(found.label) + "</strong> (" + escapeHtml(found.id) + ")<br/>" +
+            "<strong>" + escapeHtml(found.label) + "</strong> <span class='mono-val'>(" + escapeHtml(found.id) + ")</span><br/>" +
             "<span style='color:var(--text-muted);'>" + escapeHtml((found.definition || "").slice(0, 140)) + "</span>";
         }} else {{
           stage3d.style.cursor = "grab";
@@ -1470,10 +2074,10 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         zoom3d = 1.0;
       }});
 
-      // ============================================================================
-      // View 2: 2D Hierarchy DAG Renderer (D3.js v7)
-      // ============================================================================
-      function computeLayeredPositions(width, height) {{
+      // ==========================================================================
+      // View 2: Interactive Relationship Node Map (2D Hierarchy DAG, D3.js v7)
+      // ==========================================================================
+      function computeLayeredPositions(width, height, preserveExisting = false) {{
         const depthGroups = new Map();
         nodes.forEach(n => {{
           const d = Number(n.depth || 0);
@@ -1492,17 +2096,19 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             : verticalPad + (layerIdx / (layerCount - 1)) * usableHeight;
           const count = group.length;
           group.forEach((n, idx) => {{
-            n.x = (width / (count + 1)) * (idx + 1);
-            n.y = y;
+            if (!preserveExisting || typeof n.x !== "number" || typeof n.y !== "number") {{
+              n.x = (width / (count + 1)) * (idx + 1);
+              n.y = y;
+            }}
           }});
         }});
       }}
 
-      function renderDagView() {{
+      function renderDagView(preserveViewport = false) {{
         const svgEl = document.getElementById("dag-svg");
         const width = svgEl.clientWidth || 860;
         const height = svgEl.clientHeight || 560;
-        computeLayeredPositions(width, height);
+        computeLayeredPositions(width, height, preserveViewport);
 
         if (typeof window.d3 === "undefined") return;
         const d3 = window.d3;
@@ -1511,14 +2117,14 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
         const defs = dagSvg.append("defs");
         const markerColors = {{
-          "subClassOf": "#0ea5e9",
-          "part_of": "#f59e0b",
-          "develops_from": "#10b981",
-          "derives_from": "#10b981",
-          "occurs_in": "#06b6d4",
-          "located_in": "#06b6d4",
-          "regulates": "#f43f5e",
-          "default": "#64748b"
+          "subClassOf": SEMANTIC_PALETTE.teal,
+          "part_of": SEMANTIC_PALETTE.amber,
+          "develops_from": SEMANTIC_PALETTE.emerald,
+          "derives_from": SEMANTIC_PALETTE.emerald,
+          "occurs_in": SEMANTIC_PALETTE.indigo,
+          "located_in": SEMANTIC_PALETTE.indigo,
+          "regulates": SEMANTIC_PALETTE.rose,
+          "default": SEMANTIC_PALETTE.teal
         }};
         Object.entries(markerColors).forEach(([key, color]) => {{
           defs.append("marker")
@@ -1538,9 +2144,13 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         const zoom = d3.zoom()
           .scaleExtent([0.25, 3.5])
           .on("zoom", (event) => {{
+            dagZoomTransform = event.transform;
             g.attr("transform", event.transform);
           }});
         dagSvg.call(zoom);
+        if (preserveViewport && dagZoomTransform) {{
+          dagSvg.call(zoom.transform, dagZoomTransform);
+        }}
 
         const linkData = edges.map(e => ({{
           ...e,
@@ -1561,8 +2171,9 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           .attr("y1", d => d.sourceNode.y)
           .attr("x2", d => d.targetNode.x)
           .attr("y2", d => d.targetNode.y)
-          .attr("stroke", d => (d.style && d.style.stroke) || "#0ea5e9")
-          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.5 : 2)
+          .attr("stroke", d => (highlightRootPath && d.on_root_path) ? SEMANTIC_PALETTE.amber : resolveRelationColor(d.type))
+          .attr("stroke-opacity", d => (highlightRootPath && !d.on_root_path) ? 0.28 : 0.78)
+          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.0 : 2.0)
           .attr("stroke-dasharray", d => (d.style && d.style.dasharray !== "none") ? d.style.dasharray : null)
           .attr("marker-end", d => "url(#arrow-" + (markerColors[d.type] ? d.type : "default") + ")");
 
@@ -1570,6 +2181,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           .attr("x", d => (d.sourceNode.x + d.targetNode.x) / 2)
           .attr("y", d => (d.sourceNode.y + d.targetNode.y) / 2 - 5)
           .attr("text-anchor", "middle")
+          .attr("font-family", "IBM Plex Mono, monospace")
           .attr("font-size", "10px")
           .attr("fill", "var(--text-muted)")
           .text(d => d.type);
@@ -1607,7 +2219,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           .on("mouseenter", (event, d) => {{
             tooltip.style.display = "block";
             tooltip.innerHTML =
-              "<strong>" + escapeHtml(d.label) + "</strong> (" + escapeHtml(d.id) + ")<br/>" +
+              "<strong>" + escapeHtml(d.label) + "</strong> <span class='mono-val'>(" + escapeHtml(d.id) + ")</span><br/>" +
               "<span style='color:var(--text-muted);'>" + escapeHtml((d.definition || "").slice(0, 140)) + "</span>";
           }})
           .on("mousemove", (event) => {{
@@ -1621,16 +2233,17 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
 
         nodeElements.append("circle")
           .attr("class", "dag-node-circle")
-          .attr("r", d => d.is_target ? 14 : (d.is_root ? 11 : 10))
-          .attr("fill", d => d.is_target ? "var(--target-fill)" : (d.is_root ? "var(--root-fill)" : "var(--node-fill)"))
-          .attr("stroke", d => (highlightRootPath && d.on_root_path) ? "var(--path-highlight)" : (d.is_target ? "var(--target-stroke)" : "var(--node-stroke)"))
-          .attr("stroke-width", d => (d.is_target || (highlightRootPath && d.on_root_path)) ? 3 : 2);
+          .attr("r", d => d.is_target ? 13.5 : (d.is_root ? 11 : 9.5))
+          .attr("fill", d => resolveNodeSemanticColor(d))
+          .attr("stroke", d => (highlightRootPath && d.on_root_path) ? SEMANTIC_PALETTE.amber : (d.id === selectedNodeId ? "var(--text-main)" : "var(--bg-card)"))
+          .attr("stroke-width", d => (d.id === selectedNodeId || d.is_target || (highlightRootPath && d.on_root_path)) ? 2.8 : 1.6);
 
         nodeElements.append("text")
           .attr("dy", 25)
           .attr("text-anchor", "middle")
+          .attr("font-family", "DM Sans, sans-serif")
           .attr("font-size", d => d.is_target ? "12px" : "11px")
-          .attr("font-weight", d => d.is_target ? "700" : "500")
+          .attr("font-weight", d => d.is_target ? "600" : "500")
           .attr("fill", "var(--text-main)")
           .text(d => d.label + " (" + d.id + ")");
       }}
@@ -1640,21 +2253,22 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         const d3 = window.d3;
         d3.selectAll(".dag-node-circle")
           .attr("stroke", d => {{
-            if (d.id === nodeId) return "var(--accent)";
-            if (highlightRootPath && d.on_root_path) return "var(--path-highlight)";
-            return d.is_target ? "var(--target-stroke)" : "var(--node-stroke)";
+            if (d.id === nodeId) return "var(--text-main)";
+            if (highlightRootPath && d.on_root_path) return SEMANTIC_PALETTE.amber;
+            return "var(--bg-card)";
           }})
-          .attr("stroke-width", d => (d.id === nodeId || d.is_target || (highlightRootPath && d.on_root_path)) ? 3.5 : 2);
+          .attr("stroke-width", d => (d.id === nodeId || d.is_target || (highlightRootPath && d.on_root_path)) ? 3.0 : 1.6);
 
         d3.selectAll(".dag-edge-line")
-          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.5 : 2)
-          .attr("opacity", d => (!highlightRootPath || d.on_root_path) ? 1.0 : 0.35);
+          .attr("stroke", d => (highlightRootPath && d.on_root_path) ? SEMANTIC_PALETTE.amber : resolveRelationColor(d.type))
+          .attr("stroke-width", d => (highlightRootPath && d.on_root_path) ? 3.0 : 2.0)
+          .attr("stroke-opacity", d => (!highlightRootPath || d.on_root_path) ? 0.82 : 0.25);
       }}
 
-      // ============================================================================
+      // ==========================================================================
       // View 3: Collapsible Lineage Tree View (D3.js v7)
-      // ============================================================================
-      function renderCollapsibleTreeView() {{
+      // ==========================================================================
+      function renderCollapsibleTreeView(preserveViewport = false) {{
         if (!window.d3 || !treeData) return;
         const d3 = window.d3;
         const svgEl = document.getElementById("tree-svg");
@@ -1666,11 +2280,23 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         const g = svg.append("g").attr("transform", "translate(95, 40)");
 
         const zoom = d3.zoom().scaleExtent([0.3, 3.0]).on("zoom", (event) => {{
+          treeZoomTransform = event.transform;
           g.attr("transform", event.transform);
         }});
         svg.call(zoom);
+        if (preserveViewport && treeZoomTransform) {{
+          svg.call(zoom.transform, treeZoomTransform);
+        }}
 
         const root = d3.hierarchy(treeData, d => d.children);
+        if (preserveViewport && collapsedTreeIds.size > 0) {{
+          root.descendants().forEach(d => {{
+            if (collapsedTreeIds.has(d.data.id) && d.children) {{
+              d._children = d.children;
+              d.children = null;
+            }}
+          }});
+        }}
         const treeLayout = d3.tree().size([height - 80, Math.max(480, width - 260)]);
 
         function updateTree() {{
@@ -1683,14 +2309,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             .append("path")
             .attr("class", "tree-link")
             .attr("fill", "none")
-            .attr("stroke", d => {{
-              const rel = d.target.data.relation_to_parent || "subClassOf";
-              if (rel === "part_of") return "#f59e0b";
-              if (rel === "develops_from" || rel === "derives_from") return "#10b981";
-              if (rel === "regulates") return "#f43f5e";
-              if (rel === "occurs_in" || rel === "located_in") return "#06b6d4";
-              return "#0ea5e9";
-            }})
+            .attr("stroke", d => resolveRelationColor(d.target.data.relation_to_parent || "subClassOf"))
+            .attr("stroke-opacity", 0.76)
             .attr("stroke-width", 2)
             .attr("stroke-dasharray", d => {{
               const rel = d.target.data.relation_to_parent || "subClassOf";
@@ -1710,25 +2330,28 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
               if (d.children) {{
                 d._children = d.children;
                 d.children = null;
+                collapsedTreeIds.add(d.data.id);
               }} else if (d._children) {{
                 d.children = d._children;
                 d._children = null;
+                collapsedTreeIds.delete(d.data.id);
               }}
               updateTree();
             }});
 
           nodeSel.append("circle")
-            .attr("r", d => d.data.is_target ? 10 : 7)
-            .attr("fill", d => d.data.is_target ? "var(--target-fill)" : (d._children ? "var(--accent)" : "var(--node-fill)"))
-            .attr("stroke", "var(--node-stroke)")
+            .attr("r", d => d.data.is_target ? 9.5 : 7)
+            .attr("fill", d => d.data.is_target ? SEMANTIC_PALETTE.indigo : (d._children ? SEMANTIC_PALETTE.amber : SEMANTIC_PALETTE.teal))
+            .attr("stroke", "var(--bg-card)")
             .attr("stroke-width", 2);
 
           nodeSel.append("text")
             .attr("dy", "0.32em")
             .attr("x", d => (d.children || d._children) ? -12 : 12)
             .attr("text-anchor", d => (d.children || d._children) ? "end" : "start")
+            .attr("font-family", "DM Sans, sans-serif")
             .attr("font-size", "11px")
-            .attr("font-weight", d => d.data.is_target ? "700" : "400")
+            .attr("font-weight", d => d.data.is_target ? "600" : "400")
             .attr("fill", "var(--text-main)")
             .text(d => d.data.label + " (" + d.data.id + ")");
         }}
@@ -1740,7 +2363,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       document.getElementById("dataset-selector").addEventListener("change", function() {{
         const chosen = DATASETS.get(this.value);
         if (chosen) {{
-          loadActivePayload(chosen);
+          loadActivePayload(chosen, {{ preserveViewport: false }});
         }}
       }});
 
@@ -1754,9 +2377,8 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             const parsed = JSON.parse(String(evt.target.result || "{{}}"));
             if (parsed.target_term && Array.isArray(parsed.nodes)) {{
               registerDataset(parsed);
-              loadActivePayload(parsed);
+              loadActivePayload(parsed, {{ preserveViewport: false }});
             }} else if (parsed.obo_id || parsed.iri) {{
-              // Normalize raw OLS4 term.json on the client
               const tid = parsed.obo_id || parsed.short_form || "CUSTOM:0001";
               const tlabel = parsed.label || tid;
               const defn = Array.isArray(parsed.description) ? (parsed.description[0] || "") : (parsed.description || "");
@@ -1803,7 +2425,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
                   is_hierarchical: rtype !== "subClassOf",
                   on_root_path: true,
                   style: {{
-                    stroke: rtype === "part_of" ? "#f59e0b" : "#0ea5e9",
+                    stroke: resolveRelationColor(rtype),
                     pattern: rtype === "subClassOf" ? "solid" : "dashed",
                     dasharray: rtype === "subClassOf" ? "none" : "6,4"
                   }}
@@ -1835,7 +2457,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
                   is_hierarchical: rtype !== "subClassOf",
                   on_root_path: false,
                   style: {{
-                    stroke: rtype === "part_of" ? "#f59e0b" : "#0ea5e9",
+                    stroke: resolveRelationColor(rtype),
                     pattern: rtype === "subClassOf" ? "solid" : "dashed",
                     dasharray: rtype === "subClassOf" ? "none" : "6,4"
                   }}
@@ -1873,7 +2495,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
                 repository_stats: activeData.repository_stats
               }};
               registerDataset(synthesized);
-              loadActivePayload(synthesized);
+              loadActivePayload(synthesized, {{ preserveViewport: false }});
             }}
           }} catch (err) {{
             console.error("Failed to parse uploaded JSON:", err);
@@ -1906,33 +2528,14 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         rotY = 0.45;
         rotX = 0.22;
         zoom3d = 1.0;
-        renderDagView();
-        renderCollapsibleTreeView();
+        dagZoomTransform = null;
+        treeZoomTransform = null;
+        collapsedTreeIds.clear();
+        renderDagView(false);
+        renderCollapsibleTreeView(false);
       }});
 
-      // Icon-Only Light and Dark Theme Buttons
-      function setTheme(mode) {{
-        document.documentElement.setAttribute("data-theme", mode);
-        document.getElementById("btn-theme-light").classList.toggle("active", mode === "light");
-        document.getElementById("btn-theme-dark").classList.toggle("active", mode === "dark");
-      }}
-
-      document.getElementById("btn-theme-light").addEventListener("click", function(e) {{
-        e.stopPropagation();
-        setTheme("light");
-      }});
-
-      document.getElementById("btn-theme-dark").addEventListener("click", function(e) {{
-        e.stopPropagation();
-        setTheme("dark");
-      }});
-
-      document.getElementById("btn-theme-toggle").addEventListener("click", function() {{
-        const current = document.documentElement.getAttribute("data-theme") || "dark";
-        setTheme(current === "dark" ? "light" : "dark");
-      }});
-
-      // Tab Switching
+      // Tab Switching with Domain-Accurate Component Header Updates
       ["3d", "dag", "tree", "pipeline", "metrics"].forEach(tabKey => {{
         const btn = document.getElementById("tab-btn-" + tabKey);
         btn.addEventListener("click", function() {{
@@ -1941,13 +2544,64 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
             document.getElementById("tab-btn-" + k).classList.toggle("active", k === tabKey);
             document.getElementById("panel-" + k).classList.toggle("active", k === tabKey);
           }});
-          if (tabKey === "dag") renderDagView();
-          if (tabKey === "tree") renderCollapsibleTreeView();
+          const title = COMPONENT_HEADERS[tabKey];
+          if (title) {{
+            document.getElementById("active-component-title").textContent = title;
+          }}
+          if (tabKey === "dag") renderDagView(true);
+          if (tabKey === "tree") renderCollapsibleTreeView(true);
         }});
       }});
 
-      // Initialize Dashboard with Processed Data
-      loadActivePayload(INITIAL_DATA);
+      // ==========================================================================
+      // Section 2: Server-Sent Events (SSE) Live Streaming & Incremental API
+      // ==========================================================================
+      function initLiveSSEStream() {{
+        if (typeof window.EventSource === "undefined") return;
+        const params = new URLSearchParams(window.location.search || "");
+        const sseUrl = params.get("sse") || params.get("sse_url") ||
+          ((window.location.protocol === "http:" || window.location.protocol === "https:") ? "/events" : "");
+        if (!sseUrl) return;
+
+        try {{
+          const es = new EventSource(sseUrl);
+          es.addEventListener("message", (evt) => {{
+            try {{
+              const incoming = JSON.parse(evt.data);
+              if (incoming && incoming.target_term && Array.isArray(incoming.nodes)) {{
+                registerDataset(incoming);
+                loadActivePayload(incoming, {{ preserveViewport: true }});
+              }}
+            }} catch (_) {{}}
+          }});
+          es.addEventListener("error", () => {{
+            es.close();
+          }});
+        }} catch (_) {{}}
+      }}
+
+      window.__OLS_DASHBOARD_API__ = {{
+        pushIncrementalUpdate: function(payload) {{
+          if (payload && payload.target_term && Array.isArray(payload.nodes)) {{
+            registerDataset(payload);
+            loadActivePayload(payload, {{ preserveViewport: true }});
+          }}
+        }},
+        setThemeMode: function(mode) {{
+          applyThemeMode(mode, true);
+        }}
+      }};
+
+      // Initialize Theme Mode from localStorage or default to 'system'
+      let savedMode = "system";
+      try {{
+        savedMode = window.localStorage.getItem(THEME_STORAGE_KEY) || "system";
+      }} catch (_) {{}}
+      applyThemeMode(savedMode, false);
+
+      // Initialize Dashboard with Empirical Data
+      loadActivePayload(INITIAL_DATA, {{ preserveViewport: false }});
+      initLiveSSEStream();
       requestAnimationFrame(draw3DScene);
     }})();
   </script>

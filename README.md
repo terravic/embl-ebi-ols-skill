@@ -10,7 +10,7 @@
 Biomedical ontologies are structured as multi-relational Directed Acyclic Graphs (DAGs) with multiple inheritance. Inspecting raw nested JSON responses makes it difficult to separate direct taxonomic specialization (`subClassOf` / `is-a`) from structural or developmental relationships (`part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`). `embl-ebi-ols-visualize` addresses this by providing:
 - Rate-limited, protocol-compliant CLI utilities enforcing the EMBL-EBI 5.0 QPS rate limit, exponential backoff retries, automatic OBO ID to canonical IRI mapping, and double URL-encoding.
 - Automated graph and hierarchical tree normalization with shortest-path-to-root tracing, input-to-output data pipeline metrics, and semantic edge classification.
-- A standalone, self-contained HTML5 interactive dashboard (`dashboard.html`) featuring five synchronized views (`3D Network`, `2D Hierarchy`, `Lineage Tree`, `Data Pipeline`, and `Corpus Metrics`), a split-pane term inspector for scoped synonyms and clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), client-side JSON loading, and a Light/Dark theme switcher.
+- A standalone, self-contained HTML5 interactive dashboard (`dashboard.html`) built to the specifications in `DESIGN.md`, featuring single-level bento grid organization, a three-mode theme selector (`Light`, `Dark`, and `System` with real-time OS appearance tracking), five synchronized views (`Structural Data Diagram` / `3D Network`, `Interactive Relationship Node Map` / `2D Hierarchy`, `Taxonomic Lineage Tree`, `Empirical Data Pipeline`, and `Corpus & Quantitative Metrics`), a split-pane term inspector for scoped synonyms and clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), client-side JSON loading, and live Server-Sent Events (SSE) incremental updates.
 - A deterministic offline mock engine (`--mock`) backed by synthetic fixtures in `sample_data/` for isolated execution and continuous integration testing without external network access.
 
 ---
@@ -21,60 +21,87 @@ All paths in this repository are organized relative to the project root director
 
 ```text
 .
-├── .licenses/
-│   └── embl_ebi_ols_visualize_LICENSE.txt
-├── LICENSE
-├── README.md
-├── SKILL.md
-├── SKILL_LICENSES.md
-├── assets/
-│   ├── dashboard_schema.json
-│   ├── dashboard_template.html
-│   ├── skill_overview.png
-│   └── skill_overview.svg
-├── dashboard.html
-├── documents/
-│   └── prd.md
-├── references/
-│   ├── api_reference.md
-│   ├── citation.bib
-│   └── dashboard_schema.md
-├── requirements.txt
-├── sample_data/
-│   ├── doid_9351_diabetes.json
-│   ├── go_0005634_nucleus.json
-│   ├── go_0006915_apoptosis.json
-│   ├── ontology_go.json
-│   ├── search_diabetes.json
-│   └── stats.json
-├── scripts/
-│   ├── generate_dashboard.py
-│   ├── get_individual.py
-│   ├── get_ontology.py
-│   ├── get_property.py
-│   ├── get_stats.py
-│   ├── get_term.py
-│   ├── ols_utils.py
-│   ├── run_pipeline.py
-│   ├── search_ols.py
-│   ├── suggest_ols.py
-│   ├── visualize_hierarchy.py
-│   └── visualize_ontology.py
-├── skills/
-│   └── embl_ebi_ols_visualize/
-│       ├── LICENSE
-│       ├── SKILL.md
-│       ├── assets/
-│       ├── dashboard.html
-│       ├── references/
-│       ├── sample_data/
-│       └── scripts/
-└── tests/
-    ├── __init__.py
-    ├── test_cli_endpoints.py
-    ├── test_system_pipeline.py
-    ├── test_unit_ols_utils.py
-    └── test_unit_visualizers.py
+|-- .gitignore
+|-- .licenses/
+|   `-- embl_ebi_ols_visualize_LICENSE.txt
+|-- DESIGN.md
+|-- LICENSE
+|-- README.md
+|-- SKILL.md
+|-- SKILL_LICENSES.md
+|-- assets/
+|   |-- dashboard_schema.json
+|   |-- dashboard_template.html
+|   |-- skill_overview.png
+|   `-- skill_overview.svg
+|-- dashboard.html
+|-- documents/
+|   `-- prd.md
+|-- references/
+|   |-- api_reference.md
+|   |-- citation.bib
+|   `-- dashboard_schema.md
+|-- requirements.txt
+|-- sample_data/
+|   |-- doid_9351_diabetes.json
+|   |-- go_0005634_nucleus.json
+|   |-- go_0006915_apoptosis.json
+|   |-- ontology_go.json
+|   |-- search_diabetes.json
+|   `-- stats.json
+|-- scripts/
+|   |-- generate_dashboard.py
+|   |-- get_individual.py
+|   |-- get_ontology.py
+|   |-- get_property.py
+|   |-- get_stats.py
+|   |-- get_term.py
+|   |-- ols_utils.py
+|   |-- run_pipeline.py
+|   |-- search_ols.py
+|   |-- suggest_ols.py
+|   |-- visualize_hierarchy.py
+|   `-- visualize_ontology.py
+|-- skills/
+|   `-- embl_ebi_ols_visualize/
+|       |-- LICENSE
+|       |-- SKILL.md
+|       |-- assets/
+|       |   |-- dashboard_schema.json
+|       |   |-- dashboard_template.html
+|       |   |-- skill_overview.png
+|       |   `-- skill_overview.svg
+|       |-- dashboard.html
+|       |-- references/
+|       |   |-- api_reference.md
+|       |   |-- citation.bib
+|       |   `-- dashboard_schema.md
+|       |-- sample_data/
+|       |   |-- doid_9351_diabetes.json
+|       |   |-- go_0005634_nucleus.json
+|       |   |-- go_0006915_apoptosis.json
+|       |   |-- ontology_go.json
+|       |   |-- search_diabetes.json
+|       |   `-- stats.json
+|       `-- scripts/
+|           |-- generate_dashboard.py
+|           |-- get_individual.py
+|           |-- get_ontology.py
+|           |-- get_property.py
+|           |-- get_stats.py
+|           |-- get_term.py
+|           |-- ols_utils.py
+|           |-- run_pipeline.py
+|           |-- search_ols.py
+|           |-- suggest_ols.py
+|           |-- visualize_hierarchy.py
+|           `-- visualize_ontology.py
+`-- tests/
+    |-- __init__.py
+    |-- test_cli_endpoints.py
+    |-- test_system_pipeline.py
+    |-- test_unit_ols_utils.py
+    `-- test_unit_visualizers.py
 ```
 
 ---
@@ -206,10 +233,10 @@ python3 -m unittest discover -s tests -p "test_*.py" -v
 This section explains how biomedical researchers, clinicians, geneticists, and disease curators can use `embl-ebi-ols-visualize` through natural language prompts without writing code or memorizing command-line flags.
 
 ### Step 1: Register the Skill
-Place the skill directory (`./` or `skills/embl_ebi_ols_visualize`) in your agent workspace skills directory. The agent reads `SKILL.md` automatically and registers `embl-ebi-ols-visualize`.
+Place the skill directory (`./` or `skills/embl_ebi_ols_visualize`) in your workspace skills directory. The assistant reads `SKILL.md` automatically and registers `embl-ebi-ols-visualize`.
 
 ### Step 2: Ask Questions in Plain Language
-Describe the biological concept, cellular component, phenotype, or disease you want to explore. You can provide either a common medical/scientific name (such as `"diabetes"` or `"programmed cell death"`) or a standard ontology identifier (such as `GO:0005634` or `DOID:9351`).
+Describe the biological concept, cellular component, phenotype, or disease you want to explore. You can provide either a common medical or scientific name (such as `"diabetes"` or `"programmed cell death"`) or a standard ontology identifier (such as `GO:0005634` or `DOID:9351`).
 
 #### Real-World Example 1: Exploring Cellular Structure in the Gene Ontology
 - **What You Ask**:
@@ -218,7 +245,7 @@ Describe the biological concept, cellular component, phenotype, or disease you w
   The skill looks up `nucleus (GO:0005634)` in the Gene Ontology, retrieves its parent and child terms, and builds an interactive diagram (`dashboard.html`).
 - **What You See**:
   1. A plain-language summary with the official definition of the cell nucleus, its broader categories (`intracellular membrane-bounded organelle` and `intracellular anatomical structure`), and its internal components (`nuclear envelope`, `nucleoplasm`, `nucleolus`, `nuclear pore`, `nuclear lumen`).
-  2. An interactive diagram where solid blue arrows show direct classification (`is-a`) and dashed orange arrows show structural containment (`part_of`).
+  2. An interactive diagram where solid teal arrows (`#0D9488`) show direct classification (`is_a`) and dashed amber arrows (`#D97706`) show structural containment (`part_of`).
 
 #### Real-World Example 2: Reviewing Disease Classifications and Clinical Codes
 - **What You Ask**:
@@ -241,16 +268,16 @@ Describe the biological concept, cellular component, phenotype, or disease you w
 ### Step 3: Using the Interactive Dashboard (`dashboard.html`)
 Open `dashboard.html` in any web browser or preview pane to explore the results interactively:
 - **Switch Between Five Views**:
-  - `3D Network`: Rotate, pan, and zoom through a 3D spatial diagram that separates multi-parent branches across vertical depth layers.
-  - `2D Hierarchy`: View a flat top-to-bottom flowchart where individual boxes can be dragged to rearrange the layout.
-  - `Lineage Tree`: Click any branch node to expand or collapse child subtypes.
-  - `Data Pipeline`: Review the exact query parameters sent to EMBL-EBI alongside the processed nodes and relationships.
-  - `Corpus Metrics`: View summary counts of relationship types and overall ontology statistics.
+  - `3D Network` (**Structural Data Diagram**): Rotate, pan, and zoom through a 3D spatial diagram (powered by WebGL with automatic 2D software projection fallback) that separates multi-parent branches across vertical depth layers.
+  - `2D Hierarchy` (**Interactive Relationship Node Map**): View a layered top-to-bottom graph where individual nodes can be dragged to rearrange the layout without losing zoom or viewport position.
+  - `Lineage Tree` (**Taxonomic Lineage Tree**): Click any branch node to expand or collapse child subtypes.
+  - `Data Pipeline` (**Empirical Data Pipeline**): Review the exact query parameters sent to EMBL-EBI alongside the normalized nodes and classified semantic relationships.
+  - `Corpus Metrics` (**Corpus & Quantitative Metrics**): View quantitative bar plots of relationship types, a topological depth by relation concentration heatmap, and overall ontology statistics.
 - **Inspect Term Details**: Click any node in the diagram to display its definition, synonyms, parent/child links, and clinical database cross-references in the right-hand sidebar.
 - **Highlight the Main Lineage**: Click `Root Path` in the top bar to highlight the shortest chain of parent terms leading from the ontology root to your selected term.
 - **Search Within the Diagram**: Type a word or ID into `Filter nodes by label or ID...` to highlight matching terms immediately.
 - **Switch Datasets or Load Custom Files**: Use the top dropdown menu to switch between bundled examples, or click `Load JSON` to open any saved output file from `./output/`.
-- **Switch Light and Dark Themes**: Click the sun or moon button in the top-right corner to switch between light and dark display modes.
+- **Switch Light, Dark, and System Themes**: Click the sun (`Light Theme`), crescent moon (`Dark Theme`), or monitor (`System Theme`) button in the top-right segmented control to switch display modes or follow your operating system appearance automatically.
 
 ---
 

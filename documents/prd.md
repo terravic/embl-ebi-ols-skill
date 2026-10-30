@@ -3,18 +3,19 @@
 | Document Attribute | Value |
 | :--- | :--- |
 | **Product Name** | EMBL-EBI Ontology Lookup Service (OLS) Visualize (`embl-ebi-ols-visualize`) |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **License** | Apache License 2.0 |
 | **Target Platforms** | Standardized Agent Skill Harnesses and Command-Line Environments |
 | **Upstream API** | EMBL-EBI OLS4 REST API (`https://www.ebi.ac.uk/ols4/api`) |
+| **Design Specification** | `DESIGN.md` (Visual Hierarchy, Theme System, and Semantic Data Visualization Rules) |
 
 ---
 
 ## 1. Executive Overview
 
-The `embl-ebi-ols-visualize` skill is a biomedical ontology query, traversal, and visualization toolkit built for agentic workflows and command-line analysis. It provides programmatic access to the European Bioinformatics Institute (EMBL-EBI) Ontology Lookup Service (OLS4) across more than 250 biomedical ontologies—including the Gene Ontology (GO), Human Disease Ontology (DOID), Human Phenotype Ontology (HP), Mondo Disease Ontology (MONDO), Chemical Entities of Biological Interest (CHEBI), Cell Ontology (CL), Uber-anatomy Ontology (UBERON), Experimental Factor Ontology (EFO), and NCI Thesaurus (NCIT)—by pairing compliant REST API retrieval with an automated graph synthesis pipeline and a standalone HTML5 interactive dashboard (`dashboard.html`).
+The `embl-ebi-ols-visualize` skill is a biomedical ontology query, traversal, and visualization toolkit built for agentic workflows and command-line analysis. It provides programmatic access to the European Bioinformatics Institute (EMBL-EBI) Ontology Lookup Service (OLS4) across more than 250 biomedical ontologies--including the Gene Ontology (GO), Human Disease Ontology (DOID), Human Phenotype Ontology (HP), Mondo Disease Ontology (MONDO), Chemical Entities of Biological Interest (CHEBI), Cell Ontology (CL), Uber-anatomy Ontology (UBERON), Experimental Factor Ontology (EFO), and NCI Thesaurus (NCIT)--by pairing compliant REST API retrieval with an automated graph synthesis pipeline and a standalone HTML5 interactive dashboard (`dashboard.html`).
 
-Where raw REST API responses return deeply nested JSON structures that obscure multiple inheritance and transitive partonomic relationships, `embl-ebi-ols-visualize` normalizes ontology lineages into Directed Acyclic Graphs (DAGs) and collapsible hierarchical trees, visually distinguishes taxonomic (`subClassOf` / `is-a`) edges from transitive (`part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`) relationships, tracks input-to-output data pipeline metrics, surfaces cross-database clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), and provides a deterministic offline mock mode (`--mock`) for isolated testing and validation.
+Where raw REST API responses return deeply nested JSON structures that obscure multiple inheritance and transitive partonomic relationships, `embl-ebi-ols-visualize` normalizes ontology lineages into Directed Acyclic Graphs (DAGs) and collapsible hierarchical trees, visually distinguishes taxonomic (`subClassOf` / `is-a`) edges from transitive (`part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`) relationships using a standardized semantic color palette, tracks input-to-output data pipeline metrics, surfaces cross-database clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), supports incremental state updates via Server-Sent Events (SSE), and provides a deterministic offline mock mode (`--mock`) for isolated testing and validation.
 
 ---
 
@@ -32,10 +33,10 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
 
 | Story ID | Persona | Requirement Statement | Acceptance Criteria |
 | :--- | :--- | :--- | :--- |
-| **US-01** | Biomedical Researcher | As a researcher studying cellular compartments, I want to look up `GO:0005634` (nucleus) and inspect its parent and child terms in an interactive graph so that I can distinguish direct subclass relations from `part_of` structural components. | Executing `run_pipeline.py --obo_id "GO:0005634" -o ./output/nucleus/` produces `dashboard.html` with interactive 3D Network, 2D Hierarchy DAG, and Lineage Tree views where `subClassOf` edges are solid blue and `part_of` edges are dashed amber. |
-| **US-02** | Disease Curator | As a disease ontology curator, I want to examine `DOID:9351` (diabetes mellitus), its multi-parent disease classifications, synonyms, and external cross-references (ICD-10, MeSH, OMIM, UMLS) in a single view. | Clicking any node in `dashboard.html` updates the Side-Drawer Term Inspector displaying canonical label, OBO ID, definition, scoped synonyms (`EXACT`, `BROAD`, `NARROW`, `RELATED`), external xrefs, direct parents, and direct children. |
+| **US-01** | Biomedical Researcher | As a researcher studying cellular compartments, I want to look up `GO:0005634` (nucleus) and inspect its parent and child terms in an interactive graph so that I can distinguish direct subclass relations from `part_of` structural components. | Executing `run_pipeline.py --obo_id "GO:0005634" -o ./output/nucleus/` produces `dashboard.html` with interactive Structural Data Diagram (3D Network), Interactive Relationship Node Map (2D Hierarchy DAG), and Taxonomic Lineage Tree views where `subClassOf` edges are solid Vibrant Teal (`#0D9488`) and `part_of` edges are dashed Energetic Amber (`#D97706`). |
+| **US-02** | Disease Curator | As a disease ontology curator, I want to examine `DOID:9351` (diabetes mellitus), its multi-parent disease classifications, synonyms, and external cross-references (ICD-10, MeSH, OMIM, UMLS) in a single view. | Clicking any node in `dashboard.html` updates the Split-Pane Term Inspector displaying canonical label, OBO ID, definition, scoped synonyms (`EXACT`, `BROAD`, `NARROW`, `RELATED`), external xrefs, direct parents, and direct children. |
 | **US-03** | Translational Scientist | As a user who knows a biological concept keyword (e.g., `"apoptosis"`) rather than an OBO identifier, I want the skill to resolve the keyword to its canonical ontology term and build the hierarchy automatically. | Running `run_pipeline.py --query "apoptosis" --ontology go -o ./output/apoptosis/` resolves `"apoptosis"` to `GO:0006915`, fetches its hierarchical neighborhood, and generates `dashboard.html`. |
-| **US-04** | Ontology Engineer | As an ontology engineer evaluating repository coverage, I want to profile ontology metadata (version, class count, property count, root terms, license) alongside global OLS4 index statistics and inspect raw-to-normalized data pipeline metrics. | Running `run_pipeline.py --ontology go --stats -o ./output/go_overview/` aggregates `/ontologies/go` and `/v2/stats` metrics into the Corpus Metrics and Data Pipeline views. |
+| **US-04** | Ontology Engineer | As an ontology engineer evaluating repository coverage, I want to profile ontology metadata (version, class count, property count, root terms, license) alongside global OLS4 index statistics and inspect raw-to-normalized data pipeline metrics. | Running `run_pipeline.py --ontology go --stats -o ./output/go_overview/` aggregates `/ontologies/go` and `/v2/stats` metrics into the Corpus & Quantitative Metrics and Empirical Data Pipeline views. |
 | **US-05** | Platform Engineer | As an engineer running automated regression checks in an isolated sandbox without network access, I want every CLI tool and pipeline workflow to operate deterministically using local mock fixtures. | Passing `--mock` to any script returns structured responses from `sample_data/` with zero external HTTP calls and exits with status code `0`. |
 | **US-06** | Compliance Officer | As a governance reviewer, I want the skill to verify workspace license notices before running queries and include academic citations and scientific disclaimers in all outputs. | `.licenses/embl_ebi_ols_visualize_LICENSE.txt` is verified or created prior to execution, and every generated dashboard and CLI summary includes McLaughlin et al. (2025) and Jupp et al. (2015) citations plus the scientific disclaimer. |
 
@@ -44,16 +45,16 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
 #### In-Scope Capabilities
 1. **Complete OLS4 Endpoint Coverage**: Command-line wrappers for `/search` (`search_ols.py`), `/suggest` (`suggest_ols.py`), `/ontologies/{id}/terms/{iri}` and sub-relations (`get_term.py`), `/ontologies/{id}/properties/{iri}` (`get_property.py`), `/ontologies/{id}/individuals/{iri}` (`get_individual.py`), `/ontologies/{id}` (`get_ontology.py`), and `/v2/stats` (`get_stats.py`).
 2. **Protocol & Rate-Limit Compliance**: Strict 5.0 QPS rate limiting (minimum 0.2 seconds between HTTP requests), exponential backoff retry on HTTP 429/503 responses, automatic OBO ID to canonical IRI conversion, and double URL-encoding of IRI path segments.
-3. **Graph & Tree Normalization Engine**: Extraction of unique term nodes with topological depth calculation, shortest-path-to-root tracing, semantic edge categorization (`subClassOf`, `part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`), input-to-processed pipeline summary metadata (`input_summary`, `processing_summary`), and conversion of multi-parent DAGs into rooted tree hierarchies (`visualize_hierarchy.py`).
+3. **Graph & Tree Normalization Engine**: Extraction of unique term nodes with topological depth calculation, shortest-path-to-root tracing, semantic edge categorization (`subClassOf`, `part_of`, `develops_from`, `derives_from`, `occurs_in`, `located_in`, `regulates`), input-to-processed pipeline summary metadata (`input_summary`, `processing_summary`), and conversion of multi-parent DAGs into rooted tree hierarchies (`visualize_hierarchy.py`).
 4. **Ontology Corpus & Statistics Profiler**: Aggregation of ontology metadata, root class distributions, and repository-wide statistics (`visualize_ontology.py`).
-5. **Standalone HTML5 Interactive Dashboard**: Generation of a self-contained `dashboard.html` file (`generate_dashboard.py`) embedding Tailwind CSS, D3.js v7, light/dark CSS theme variables, inline `window.__OLS_DATA__` state, five synchronized views (`3D Network`, `2D Hierarchy`, `Lineage Tree`, `Data Pipeline`, `Corpus Metrics`), client-side JSON file loading, search filtering, shortest root path highlighting, relational legend, interactive term inspector drawer, and academic attribution footer.
+5. **Standalone HTML5 Interactive Dashboard (`DESIGN.md` Compliant)**: Generation of a self-contained `dashboard.html` file (`generate_dashboard.py`) implementing the `DESIGN.md` visual hierarchy, typography (`DM Sans`, `Instrument Serif`, `IBM Plex Mono` with `tabular-nums`), single-level bento grid layout, three-icon theme switcher (`#theme-btn-light`, `#theme-btn-dark`, `#theme-btn-system`) with OS appearance tracking and `system_theme` fallback, semantic visualization palette (`#0D9488`, `#D97706`, `#4F46E5`, `#059669`, `#E11D48`), five synchronized views (`Structural Data Diagram`, `Interactive Relationship Node Map`, `Taxonomic Lineage Tree`, `Empirical Data Pipeline`, `Corpus & Quantitative Metrics`), client-side JSON loading, live SSE incremental state updates, interactive term inspector drawer, and academic attribution footer.
 6. **Unified Pipeline Orchestrator**: Single-command orchestration from keyword or OBO ID input to normalized JSON datasets and `dashboard.html` output (`run_pipeline.py`).
 7. **Deterministic Offline Mock Engine**: Full offline execution across all scripts via `--mock` backed by `sample_data/` fixtures.
 
 #### Out-of-Scope Capabilities
 1. **Ontology Authoring or OWL Reasoning**: Modifying upstream ontologies, running Description Logic (DL) reasoners (e.g., ELK, HermiT) locally on raw `.owl` or `.obo` files, or submitting write/mutation requests to EMBL-EBI servers.
 2. **Clinical Decision Support**: Providing patient-specific medical diagnoses, clinical treatment recommendations, or processing Protected Health Information (PHI) / Personally Identifiable Information (PII).
-3. **Stateful Web Server Hosting**: Running persistent background web daemons or database servers; the output is a static, standalone HTML5 file suitable for direct rendering in a browser or iframe preview pane.
+3. **Stateful Database Hosting**: Running persistent database servers; the output is a self-contained HTML5 file suitable for direct rendering from disk or over HTTP with optional Server-Sent Events (SSE).
 
 ---
 
@@ -122,9 +123,10 @@ Where raw REST API responses return deeply nested JSON structures that obscure m
 |                                         v                                         |
 |  +-----------------------------------------------------------------------------+  |
 |  | scripts/generate_dashboard.py                                               |  |
-|  | - Inline JSON State Injection (window.__OLS_DATA__)                         |  |
-|  | - 3D Network, 2D Hierarchy DAG, Lineage Tree, Data Pipeline, Corpus Metrics |  |
-|  | - Split-Pane Term Inspector + Citations + Scientific Disclaimer             |  |
+|  | - Inline JSON State Injection (window.__OLS_DATA__ + system_theme)          |  |
+|  | - Light, Dark, and System Theme Selector (#theme-btn-light/-dark/-system)   |  |
+|  | - WebGL + 2D Fallback Structural Data Diagram, 2D Node Map, Lineage Tree    |  |
+|  | - Empirical Data Pipeline, Corpus Metrics Heatmap, SSE Streaming & Inspector|  |
 |  +--------------------------------------+--------------------------------------+  |
 +-----------------------------------------|-----------------------------------------+
                                           |
@@ -200,29 +202,31 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 
 4. **Stage 4: Graph & Hierarchical Tree Transformation (`visualize_hierarchy.py`)**
    - Extracts unique nodes across the focal term, relation lists, and optional `graph` block. Each node record contains `id`, `iri`, `label`, `ontology`, `definition`, `synonyms`, `obo_synonym`, `xrefs`, `is_obsolete`, `is_root`, `is_target`, and `depth` (negative integers for ancestors, `0` for focal target, positive integers for descendants).
-   - Extracts and deduplicates directed edges (`source` -> `target`, oriented from parent/whole to child/part), classifying each edge into semantic categories:
-     - `subClassOf` (`is_a`): Taxonomic inheritance, `is_hierarchical=False`, style `solid`, color `#0ea5e9` (sky blue).
-     - `part_of`: Meronymic containment, `is_hierarchical=True`, style `dashed`, color `#f59e0b` (amber).
-     - `develops_from` / `derives_from`: Lineage development, `is_hierarchical=True`, style `dashed`, color `#10b981` (emerald).
-     - `occurs_in` / `located_in`: Spatial/process localization, `is_hierarchical=True`, style `dotted`, color `#06b6d4` (cyan).
-     - `regulates` / `positively_regulates` / `negatively_regulates` / custom properties: Regulatory or specialized relations, `is_hierarchical=True`, style `dotted`, color `#f43f5e` (rose).
+   - Extracts and deduplicates directed edges (`source` -> `target`, oriented from parent/whole to child/part), classifying each edge using the `DESIGN.md` Section 5 semantic visualization palette:
+     - `subClassOf` (`is_a`): Taxonomic inheritance, `is_hierarchical=False`, style `solid`, color `#0D9488` (Vibrant Teal).
+     - `part_of`: Meronymic containment, `is_hierarchical=True`, style `dashed` (`6,4`), color `#D97706` (Energetic Amber).
+     - `develops_from` / `derives_from`: Lineage development, `is_hierarchical=True`, style `dashed` (`8,4`), color `#059669` (Functional Emerald).
+     - `occurs_in` / `located_in`: Spatial/compartmental localization, `is_hierarchical=True`, style `dotted` (`3,3`), color `#4F46E5` (Vivid Indigo).
+     - `regulates` / `positively_regulates` / `negatively_regulates` / custom properties: Regulatory or specialized relations, `is_hierarchical=True`, style `dotted` (`4,3`), color `#E11D48` (Deep Rose).
    - Computes shortest paths from ontology root nodes (`is_root=True` or in-degree `0` ancestors) to the focal term via Breadth-First Search (BFS), marking nodes and edges along root paths (`on_root_path=True`).
    - Builds `input_summary` and `processing_summary` blocks comparing raw OLS4 API inputs against normalized graph metrics.
    - Builds a cycle-safe, rooted hierarchical tree JSON (`id`, `name`, `label`, `relation_to_parent`, `is_target`, `children`: `[...]`) for collapsible D3 tree rendering, cloning shared subtrees when a node exhibits multiple inheritance.
 
 5. **Stage 5: Ontology & Repository Statistics Profiling (`visualize_ontology.py`)**
-   - Parses ontology metadata (`get_ontology.py`) and global statistics (`get_stats.py`) into normalized KPI cards (`number_of_terms`, `number_of_properties`, `number_of_individuals`, `version`, `updated`, `license`), root term distributions, and top ontology comparisons.
+   - Parses ontology metadata (`get_ontology.py`) and global statistics (`get_stats.py`) into normalized KPI metrics (`number_of_terms`, `number_of_properties`, `number_of_individuals`, `version`, `updated`, `license`), root term distributions, and top ontology comparisons.
 
 6. **Stage 6: Standalone HTML5 Dashboard Synthesis (`generate_dashboard.py`)**
-   - Serializes normalized term, `input_summary`, `processing_summary`, graph, tree, root-path, ontology, and stats payloads into `window.__OLS_DATA__` with safe `<script>` tag escaping.
-   - Emits `dashboard.html` featuring:
-     - **Light & Dark Theme Toggle**: SVG sun (`#btn-theme-light`) and moon (`#btn-theme-dark`) buttons switching between dark and light color palettes.
-     - **3D Network View**: Interactive 3D spatial node-and-edge visualization where vertical elevation encodes topological depth and horizontal coordinates separate multi-parent branches, with orbit rotation, scroll zoom, `Auto-Rotate`, and `Reset Camera` controls.
-     - **2D Hierarchy View**: Layered D3.js v7 SVG DAG view with node dragging, zoom/pan, search filtering, and root-path highlighting.
-     - **Lineage Tree View**: Collapsible D3.js hierarchical tree view.
-     - **Data Pipeline View**: Side-by-side comparison of raw OLS4 input parameters/counts and processed graph nodes/edges, plus a client-side `Load JSON` file importer.
-     - **Corpus Metrics View**: Subgraph relation breakdown, defining ontology summary, and global OLS4 repository statistics (`/v2/stats`).
+   - Queries the host OS appearance preference (`detect_host_system_theme()`) and serializes normalized term, `input_summary`, `processing_summary`, graph, tree, root-path, ontology, stats, and `system_theme` payloads into `window.__OLS_DATA__` with safe `<script>` tag escaping.
+   - Emits `dashboard.html` strictly adhering to `DESIGN.md`:
+     - **Typography & Surface Hierarchy**: Pairs `DM Sans` (UI prose/controls), `Instrument Serif` (display titles/headers), and `IBM Plex Mono` (`font-variant-numeric: tabular-nums` for numerical/tabular data) over flat single-level bento grid panes with `1px solid` borders (`6px` to `8px` radius) and thin horizontal table row dividers.
+     - **Three-Icon Theme Selector**: Segmented control (`#theme-btn-light`, `#theme-btn-dark`, `#theme-btn-system`) with Sun, Crescent Moon, and Monitor SVGs, `aria-pressed` state, `localStorage` persistence, real-time `window.matchMedia('(prefers-color-scheme: dark)')` listener, and exact Light (`#FAFAF9`, `#FFFFFF`, `#E7E5E4`, `#1C1917`, `#787774`) and Dark (`#0D0E11`, `#16171D`, `#292A30`, `#ECE8E2`, `#9A9895`) surface tokens.
+     - **Structural Data Diagram (`3D Network`)**: Interactive 3D spatial view with hardware WebGL bond rendering paired with a deterministic 2D software projection fallback, orbit rotation, scroll zoom, `Auto-Rotate`, and `Reset Camera` controls.
+     - **Interactive Relationship Node Map (`2D Hierarchy`)**: Layered D3.js v7 SVG DAG view with node dragging, zoom/pan, search filtering, and root-path highlighting.
+     - **Taxonomic Lineage Tree (`Lineage Tree`)**: Collapsible D3.js hierarchical tree view.
+     - **Empirical Data Pipeline (`Data Pipeline`)**: Flat bento comparison of raw OLS4 input parameters/counts and processed graph nodes/edges, plus a client-side `Load JSON` file importer.
+     - **Corpus & Quantitative Metrics (`Corpus Metrics`)**: Transparent-background SVG coordinate bar plots with subtle axis gridlines (`#E7E5E4` light / `#292A30` dark), a Topological Depth by Relation Concentration Matrix transitioning smoothly from the active surface tone through `#0D9488` and `#4F46E5` to `#E11D48`, defining ontology metadata, and global OLS4 repository statistics (`/v2/stats`).
      - **Split-Pane Term Inspector**: Displays canonical definitions, shortest root path breadcrumbs, clickable parent/child pills, scoped synonyms, and external clinical cross-references.
+     - **Live SSE & Incremental State Updates**: Supports `EventSource` live streaming and `window.__OLS_DASHBOARD_API__.pushIncrementalUpdate()` without resetting user viewport state, scroll position, or active chart/camera interactions.
 
 ### 4.3 Validation Rules
 
@@ -238,7 +242,7 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 | `term.json` | `get_term.py` / `run_pipeline.py` | UTF-8 JSON | Raw OLS4 term metadata combined with requested hierarchical relation payloads. |
 | `hierarchy_graph.json` | `visualize_hierarchy.py` / `run_pipeline.py` | UTF-8 JSON | Normalized `nodes`, typed `edges`, rooted `tree`, `root_paths`, `input_summary`, `processing_summary`, and graph `metrics`. |
 | `ontology_profile.json` | `visualize_ontology.py` / `run_pipeline.py` | UTF-8 JSON | Normalized ontology summary KPIs, root terms, and global OLS4 repository statistics. |
-| `dashboard.html` | `generate_dashboard.py` / `run_pipeline.py` | Self-Contained HTML5 | Interactive web dashboard with 3D Network, 2D Hierarchy DAG, Lineage Tree, Data Pipeline inspector, Corpus Metrics, Light/Dark toggle, term inspector, citations, and disclaimer. |
+| `dashboard.html` | `generate_dashboard.py` / `run_pipeline.py` | Self-Contained HTML5 | Interactive web dashboard adhering to `DESIGN.md` with 3D Structural Data Diagram, 2D Interactive Relationship Node Map, Lineage Tree, Data Pipeline inspector, Corpus Metrics & Heatmap, Light/Dark/System theme selector, term inspector, citations, and disclaimer. |
 | Console Summary | `run_pipeline.py`, `get_term.py` | Plaintext stdout | Structured summary reporting term label, OBO ID, ontology, ancestor/child counts, citations, disclaimer, and relative output file paths. |
 
 ---
@@ -249,7 +253,7 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 - **Rate Limiting**: Outgoing live HTTP calls must never exceed 5.0 requests per second (`RATE_LIMIT_DELAY = 0.2` seconds).
 - **Resilience & Retries**: Transient HTTP `429 Too Many Requests`, `500`, `502`, `503`, and `504` responses must trigger exponential backoff retries (up to 3 attempts, base delay `1.0s`, multiplier `2.0x`).
 - **Offline Execution Speed**: Full end-to-end execution of `run_pipeline.py --mock` must complete in under 2.0 seconds on standard workstation hardware.
-- **Client Rendering**: `dashboard.html` must initialize and render graphs of up to 500 nodes and 1,000 edges smoothly in standard Chromium, Firefox, and WebKit browsers.
+- **Client Rendering**: `dashboard.html` must initialize and render graphs of up to 500 nodes and 1,000 edges smoothly in standard HTML5 browsers and embedded webviews.
 
 ### 5.2 Security & Environment Independence
 - **Relative Path Resolution**: All internal file lookups (`sample_data/`, `references/`, `assets/`, and `.licenses/`) use `pathlib.Path` relative to the project root or user-specified relative output arguments.
@@ -273,7 +277,7 @@ User / Agent      run_pipeline.py      ols_utils.py       get_term / search     
 | **Empty Search Results for `--query`** | `search_ols.py` / `run_pipeline.py` checks `response.docs` length. | If `--exact` returns 0 hits in `run_pipeline.py`, retries automatically with non-exact search; if still 0 hits, writes an empty/diagnostic summary and exits with an informative error message. | `1` |
 | **Multiple Inheritance (Diamond DAGs)** | `visualize_hierarchy.py` tracks ancestor/child edges per path during tree construction. | Preserves full multi-parent connections in the `nodes`/`edges` DAG structure and clones shared child nodes along distinct parent branches (bounded by max depth and visited-on-path cycle detection) for the collapsible tree view. | `0` |
 | **Cyclic Relations in Non-Strict Ontologies** | Path-level `visited` set during DFS tree construction and BFS depth assignment. | Terminates recursive expansion on the back-edge, preventing infinite recursion while retaining the edge in the node-link graph representation. | `0` |
-| **Deprecated / Obsolete Term Queried** | Checks `is_obsolete: true` in term JSON. | Renders an `[OBSOLETE / DEPRECATED]` badge in the dashboard header and inspector panel, and displays `term_replaced_by` or `consider` annotations if present. | `0` |
+| **Deprecated / Obsolete Term Queried** | Checks `is_obsolete: true` in term JSON. | Renders an `OBSOLETE / DEPRECATED` status indicator (`#E11D48`) in the dashboard header and inspector panel, and displays `term_replaced_by` or `consider` annotations if present. | `0` |
 | **HTTP 429 / 503 Transient API Errors** | HTTP status code inspection in `ols_utils.make_request()`. | Applies exponential backoff (`1s`, `2s`, `4s`) honoring `Retry-After` headers when provided; raises `RuntimeError` with status and URL context if retries are exhausted. | `1` |
 | **Network Disabled / Offline Sandbox** | User passes `--mock` flag (or network unreachable in live mode). | In `--mock` mode, routes all requests to `sample_data/*.json` with zero network sockets opened. In live mode, catches `URLError` and suggests running with `--mock` for offline environments. | `0` (`--mock`) / `1` (live error) |
 | **Corrupted or Missing Input JSON File** | `FileNotFoundError` or `json.JSONDecodeError` in visualizer/dashboard scripts. | Catches exception, logs structured error message identifying the offending file path and parse failure details, and exits cleanly without writing partial output files. | `1` |

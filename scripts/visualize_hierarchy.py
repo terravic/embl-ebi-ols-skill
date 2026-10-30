@@ -30,8 +30,8 @@ import ols_utils  # pylint: disable=wrong-import-position
 EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     "subClassOf": {
         "is_hierarchical": False,
-        "stroke": "#0ea5e9",
-        "color": "#0ea5e9",
+        "stroke": "#0D9488",
+        "color": "#0D9488",
         "pattern": "solid",
         "dasharray": "none",
         "category": "taxonomic",
@@ -39,8 +39,8 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     },
     "part_of": {
         "is_hierarchical": True,
-        "stroke": "#f59e0b",
-        "color": "#f59e0b",
+        "stroke": "#D97706",
+        "color": "#D97706",
         "pattern": "dashed",
         "dasharray": "6,4",
         "category": "partonomic",
@@ -48,8 +48,8 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     },
     "develops_from": {
         "is_hierarchical": True,
-        "stroke": "#10b981",
-        "color": "#10b981",
+        "stroke": "#059669",
+        "color": "#059669",
         "pattern": "dashed",
         "dasharray": "8,4",
         "category": "developmental",
@@ -57,8 +57,8 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     },
     "derives_from": {
         "is_hierarchical": True,
-        "stroke": "#10b981",
-        "color": "#10b981",
+        "stroke": "#059669",
+        "color": "#059669",
         "pattern": "dashed",
         "dasharray": "8,4",
         "category": "developmental",
@@ -66,8 +66,8 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     },
     "occurs_in": {
         "is_hierarchical": True,
-        "stroke": "#06b6d4",
-        "color": "#06b6d4",
+        "stroke": "#4F46E5",
+        "color": "#4F46E5",
         "pattern": "dotted",
         "dasharray": "3,3",
         "category": "spatial",
@@ -75,8 +75,8 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     },
     "located_in": {
         "is_hierarchical": True,
-        "stroke": "#06b6d4",
-        "color": "#06b6d4",
+        "stroke": "#4F46E5",
+        "color": "#4F46E5",
         "pattern": "dotted",
         "dasharray": "3,3",
         "category": "spatial",
@@ -84,8 +84,8 @@ EDGE_STYLE_MAP: dict[str, dict[str, Any]] = {
     },
     "regulates": {
         "is_hierarchical": True,
-        "stroke": "#f43f5e",
-        "color": "#f43f5e",
+        "stroke": "#E11D48",
+        "color": "#E11D48",
         "pattern": "dotted",
         "dasharray": "4,3",
         "category": "regulatory",
@@ -165,8 +165,8 @@ def classify_edge_style(relation_type: str) -> dict[str, Any]:
     return dict(EDGE_STYLE_MAP[norm])
   return {
       "is_hierarchical": True,
-      "stroke": "#db2777",
-      "color": "#db2777",
+      "stroke": "#E11D48",
+      "color": "#E11D48",
       "pattern": "dotted",
       "dasharray": "4,3",
       "category": "custom",
