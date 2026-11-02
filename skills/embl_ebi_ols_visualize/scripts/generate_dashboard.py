@@ -33,43 +33,29 @@ import visualize_ontology  # pylint: disable=wrong-import-position
 
 
 def detect_host_system_theme() -> str:
-  """Detects the host OS appearance preference ('dark' or 'light')."""
+  """Detects the desktop appearance preference ('dark' or 'light').
+
+  The dashboard follows the operating system appearance in the browser via
+  `prefers-color-scheme`. This value is only a fallback for webviews that do not
+  expose that media query. It reads desktop-environment settings (`GTK_THEME`,
+  `gsettings`, `kdeglobals`) and defaults to 'dark' when none are available.
+  """
   try:
-    if sys.platform == "darwin":
-      style_key = "".join(["Ap", "pleInterfaceStyle"])
-      proc = subprocess.run(
-          ["defaults", "read", "-g", style_key],
-          capture_output=True,
-          text=True,
-          timeout=1.5,
-          check=False,
-      )
-      if proc.returncode == 0 and "dark" in (proc.stdout or "").lower():
-        return "dark"
-      return "light"
-
-    if sys.platform.startswith("win"):
-      import winreg  # pylint: disable=import-outside-toplevel
-
-      vendor_seg = "".join(["Micro", "soft"])
-      key_path = f"Software\\{vendor_seg}\\Windows\\CurrentVersion\\Themes\\Personalize"
-      with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
-        val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
-        return "light" if int(val) == 1 else "dark"
-
-    # Linux: check GTK_THEME, gsettings, and kdeglobals
     gtk_theme = os.environ.get("GTK_THEME", "")
     if gtk_theme:
       return "dark" if "dark" in gtk_theme.lower() else "light"
 
     for gs_key in ("color-scheme", "gtk-theme"):
-      proc = subprocess.run(
-          ["gsettings", "get", "org.gnome.desktop.interface", gs_key],
-          capture_output=True,
-          text=True,
-          timeout=1.5,
-          check=False,
-      )
+      try:
+        proc = subprocess.run(
+            ["gsettings", "get", "org.gnome.desktop.interface", gs_key],
+            capture_output=True,
+            text=True,
+            timeout=1.5,
+            check=False,
+        )
+      except (OSError, subprocess.SubprocessError):
+        break
       if proc.returncode == 0 and proc.stdout.strip():
         out_lower = proc.stdout.strip().lower()
         if "dark" in out_lower:
@@ -80,9 +66,7 @@ def detect_host_system_theme() -> str:
     kde_cfg = Path.home() / ".config" / "kdeglobals"
     if kde_cfg.is_file():
       kde_text = kde_cfg.read_text(encoding="utf-8", errors="ignore").lower()
-      if "dark" in kde_text:
-        return "dark"
-      return "light"
+      return "dark" if "dark" in kde_text else "light"
   except Exception:  # pylint: disable=broad-except
     pass
   return "dark"
@@ -222,7 +206,7 @@ def assemble_dashboard_data(
 
 
 def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
-  """Renders the self-contained HTML5 interactive dashboard strictly adhering to DESIGN.md."""
+  """Renders the self-contained HTML5 interactive dashboard."""
   page_title = html.escape(
       str(dashboard_data.get("title") or "EMBL-EBI OLS Hierarchy Explorer")
   )
@@ -256,20 +240,19 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
   <title>{page_title}</title>
   <link rel="preconnect" href="https://fonts.bunny.net" />
   <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700|ibm-plex-mono:400,500,600|instrument-serif:400,400i&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <style>
     /* ==========================================================================
-       DESIGN.md Section 1, 3, 5: Typography, Theme Tokens & Semantic Palette
+       Typography, theme tokens, and data visualization palette
        ========================================================================== */
     :root {{
-      --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-sans: 'DM Sans', system-ui, sans-serif;
       --font-serif: 'Instrument Serif', Georgia, serif;
       --font-mono: 'IBM Plex Mono', monospace;
       --radius-sm: 6px;
       --radius-md: 8px;
 
-      /* Section 5: Data Visualization Semantic Palette */
+      /* Data Visualization Semantic Palette */
       --viz-teal: #0D9488;
       --viz-amber: #D97706;
       --viz-indigo: #4F46E5;
@@ -277,7 +260,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       --viz-rose: #E11D48;
     }}
 
-    /* Section 3: Dark Mode Tokens */
+    /* Dark Mode Tokens */
     :root, [data-theme="dark"] {{
       --bg-main: #0D0E11;
       --bg-card: #16171D;
@@ -298,7 +281,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       --path-highlight: #D97706;
     }}
 
-    /* Section 3: Light Mode Tokens */
+    /* Light Mode Tokens */
     [data-theme="light"] {{
       --bg-main: #FAFAF9;
       --bg-card: #FFFFFF;
@@ -386,7 +369,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       border-color: var(--border-color);
     }}
 
-    /* High-signal state reporting (Section 1) */
+    /* Status colors */
     .status-nominal {{
       color: var(--viz-emerald);
       border-color: var(--viz-emerald);
@@ -455,7 +438,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
     }}
 
     /* ==========================================================================
-       Section 3: Three-Icon Theme Selector (#theme-btn-light, -dark, -system)
+       Three-Icon Theme Selector (#theme-btn-light, -dark, -system)
        ========================================================================== */
     .theme-selector {{
       display: inline-flex;
@@ -493,7 +476,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
     }}
 
     /* ==========================================================================
-       Single-Level Bento Grid Organization (Section 1 & Section 4)
+       Single-Level Bento Grid Organization
        ========================================================================== */
     .kpi-bento-row {{
       display: grid;
@@ -607,7 +590,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       gap: 0.35rem;
     }}
 
-    /* Uncluttered viewport background (Section 1) */
+    /* Viewport background */
     .viewport-stage {{
       flex: 1;
       position: relative;
@@ -639,7 +622,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
     }}
 
     /* ==========================================================================
-       Inspector & Flat Partitioned Panes (No Nested Card-in-Card)
+       Inspector and partitioned panes
        ========================================================================== */
     .inspector-column {{
       background-color: var(--bg-card);
@@ -669,7 +652,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       padding-bottom: 0.22rem;
     }}
 
-    /* Section 4: Monospaced tables with tabular-nums and thin horizontal row dividers */
+    /* Monospaced tables with tabular-nums and thin horizontal row dividers */
     .data-table {{
       width: 100%;
       border-collapse: collapse;
@@ -726,7 +709,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       display: none;
     }}
 
-    /* Flat bento partition grid for Pipeline & Metrics views (no nested cards) */
+    /* Partition grid for the Pipeline and Metrics views */
     .bento-split-grid {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
@@ -748,7 +731,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       color: var(--text-main);
     }}
 
-    /* Section 1 & 5: Quantitative Chart Plots with subtle axis gridlines */
+    /* Quantitative Chart Plots with subtle axis gridlines */
     .quant-chart-surface {{
       width: 100%;
       background: transparent;
@@ -793,7 +776,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       <button type="button" class="btn" id="btn-trace-root">Root Path</button>
       <button type="button" class="btn" id="btn-reset-zoom">Reset View</button>
 
-      <!-- Section 3: Three-Icon Theme Selector (Light, Dark, System) -->
+      <!-- Three-Icon Theme Selector (Light, Dark, System) -->
       <div class="theme-selector" id="btn-theme-toggle" role="group" aria-label="Theme Mode Selector">
         <button type="button" class="theme-icon-btn" id="theme-btn-light" title="Light Theme" aria-label="Light Theme" data-theme-mode="light" aria-pressed="false">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -895,7 +878,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         </div>
       </div>
 
-      <!-- Domain-Accurate Component Header (Section 4) -->
+      <!-- Component header -->
       <div class="stage-component-header">
         <h2 class="component-title" id="active-component-title">Structural Data Diagram</h2>
       </div>
@@ -978,14 +961,13 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
     window.__OLS_DATA__ = {safe_json};
   </script>
 
-  <!-- Interactive Dashboard Controller (DESIGN.md Compliant) -->
+  <!-- Interactive dashboard controller -->
   <script>
     (function() {{
-      // Legacy ID reference compatibility: btn-theme-light, btn-theme-dark
       const INITIAL_DATA = window.__OLS_DATA__ || {{}};
       const DATASETS = new Map();
 
-      // Section 5: Semantic Visualization Color Palette
+      // Semantic Visualization Color Palette
       const SEMANTIC_PALETTE = {{
         teal: "#0D9488",
         amber: "#D97706",
@@ -1043,7 +1025,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       let searchQuery = "";
       let activeTab = "3d";
 
-      // Viewport preservation state for incremental updates (Section 2)
+      // Viewport preservation state for incremental updates
       let dagZoomTransform = null;
       let treeZoomTransform = null;
       let collapsedTreeIds = new Set();
@@ -1096,7 +1078,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
       }}
 
-      // Section 5: Smooth Heatmap Color Interpolation (Surface -> #0D9488 -> #4F46E5 -> #E11D48)
+      // Smooth Heatmap Color Interpolation (Surface -> #0D9488 -> #4F46E5 -> #E11D48)
       function interpolateHex(c1, c2, t) {{
         const a = parseInt(c1.replace("#", ""), 16);
         const b = parseInt(c2.replace("#", ""), 16);
@@ -1121,7 +1103,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       }}
 
       // ==========================================================================
-      // Section 3: Light, Dark, and System Theme Controller
+      // Light, Dark, and System Theme Controller
       // ==========================================================================
       const THEME_STORAGE_KEY = "ols_dashboard_theme_mode";
       const mediaQueryList = window.matchMedia
@@ -1223,7 +1205,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       }}
 
       // ==========================================================================
-      // Section 2: Incremental State Updates (Preserves Viewport & Scroll State)
+      // Incremental State Updates (Preserves Viewport & Scroll State)
       // ==========================================================================
       function loadActivePayload(payload, options = {{}}) {{
         const preserveViewport = Boolean(options.preserveViewport);
@@ -1306,7 +1288,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         setBadge("insp-id", node.id, "badge-id");
         setBadge(
           "insp-onto",
-          [node.ontology, node.is_obsolete ? "Obsolete" : ""].filter(Boolean).join(" · "),
+          [node.ontology, node.is_obsolete ? "Obsolete" : ""].filter(Boolean).join(" | "),
           node.is_obsolete ? "status-critical" : ""
         );
         document.getElementById("insp-label").textContent = node.label || node.id || "";
@@ -1336,7 +1318,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
               const pn = nodeMap.get(pid);
               const plabel = pn ? pn.label : pid;
               return '<span class="nav-pill" data-focus-id="' + escapeHtml(pid) + '">' + escapeHtml(plabel) + ' (' + escapeHtml(pid) + ')</span>';
-            }}).join(" &rarr; ");
+            }}).join(" -&gt; ");
           }}).join("<br/>");
         }} else {{
           rootPathEl.textContent = "None";
@@ -1429,7 +1411,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         const edgeRows = edges.map(e => {{
           const stroke = resolveRelationColor(e.type);
           return "<tr>" +
-            "<td><code>" + escapeHtml(e.source) + "</code> &rarr; <code>" + escapeHtml(e.target) + "</code></td>" +
+            "<td><code>" + escapeHtml(e.source) + "</code> -&gt; <code>" + escapeHtml(e.target) + "</code></td>" +
             "<td><span style='color:" + stroke + "; font-weight:600;'>" + escapeHtml(e.type) + "</span></td>" +
             "<td>" + (e.is_hierarchical ? "Partonomic" : "Taxonomic") + "</td>" +
             "</tr>";
@@ -1464,7 +1446,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           "</div>" +
           "<div class='bento-pane'>" +
             "<h3 class='bento-pane-title'>Edges</h3>" +
-            "<div style='max-height:185px; overflow-y:auto;'><table class='data-table'><thead><tr><th>Source &rarr; Target</th><th>Relation</th><th>Type</th></tr></thead><tbody>" + edgeRows + "</tbody></table></div>" +
+            "<div style='max-height:185px; overflow-y:auto;'><table class='data-table'><thead><tr><th>Source -&gt; Target</th><th>Relation</th><th>Type</th></tr></thead><tbody>" + edgeRows + "</tbody></table></div>" +
           "</div>";
 
         container.querySelectorAll("[data-focus-id]").forEach(el => {{
@@ -2203,9 +2185,9 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         let lo = 0, hi = s.length;
         while (lo < hi) {{
           const mid = Math.ceil((lo + hi) / 2);
-          if (textWidth(s.slice(0, mid) + "…", px, weight) <= maxPx) lo = mid; else hi = mid - 1;
+          if (textWidth(s.slice(0, mid) + "...", px, weight) <= maxPx) lo = mid; else hi = mid - 1;
         }}
-        return lo > 0 ? s.slice(0, lo).trimEnd() + "…" : "";
+        return lo > 0 ? s.slice(0, lo).trimEnd() + "..." : "";
       }}
 
       function nodeMatchesSearch(n) {{
@@ -2242,7 +2224,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
           const idParts = [];
           if (n.label && n.id && n.label !== n.id) idParts.push(n.id);
           if (o.relation) idParts.push(o.relation);
-          if (idParts.length) lines.push({{ text: truncateText(idParts.join(" · "), detail.maxWidth, LABEL_FONT_PX - 1, 400), kind: "id", weight: 400 }});
+          if (idParts.length) lines.push({{ text: truncateText(idParts.join(" | "), detail.maxWidth, LABEL_FONT_PX - 1, 400), kind: "id", weight: 400 }});
         }}
         if (detail.showDef && n.definition) {{
           lines.push({{ text: truncateText(n.definition, detail.maxWidth + 40, LABEL_FONT_PX - 1, 400), kind: "def", weight: 400 }});
@@ -3279,7 +3261,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
         renderCollapsibleTreeView(false);
       }});
 
-      // Tab Switching with Domain-Accurate Component Header Updates
+      // Tab switching and component header updates
       ["3d", "dag", "tree", "pipeline", "metrics"].forEach(tabKey => {{
         const btn = document.getElementById("tab-btn-" + tabKey);
         btn.addEventListener("click", function() {{
@@ -3298,7 +3280,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       }});
 
       // ==========================================================================
-      // Section 2: Server-Sent Events (SSE) Live Streaming & Incremental API
+      // Server-Sent Events (SSE) Live Streaming & Incremental API
       // ==========================================================================
       function initLiveSSEStream() {{
         if (typeof window.EventSource === "undefined") return;
@@ -3343,7 +3325,7 @@ def render_dashboard_html(dashboard_data: dict[str, Any]) -> str:
       }} catch (_) {{}}
       applyThemeMode(savedMode, false);
 
-      // Initialize Dashboard with Empirical Data
+      // Initialize dashboard
       loadActivePayload(INITIAL_DATA, {{ preserveViewport: false }});
       initLiveSSEStream();
       requestAnimationFrame(draw3DScene);

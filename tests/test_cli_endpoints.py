@@ -183,7 +183,6 @@ class TestCliEndpoints(unittest.TestCase):
       self.assertEqual(rc, 0)
       self.assertTrue(dash_out.is_file())
       html_text = dash_out.read_text(encoding="utf-8")
-      self.assertIn("cdn.tailwindcss.com", html_text)
       self.assertIn("d3.min.js", html_text)
       self.assertIn("window.__OLS_DATA__", html_text)
 

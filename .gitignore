@@ -1,4 +1,4 @@
-# --- Python ---
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -30,11 +30,11 @@ ENV/
 # --- C extensions ---
 *.so
 
-# --- Jupyter / Colab ---
+# --- Jupyter ---
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# --- Node / A2UI tooling ---
+# --- Node ---
 node_modules/
 npm-debug.log*
 yarn-error.log*
@@ -60,6 +60,8 @@ yarn-error.log*
 *.avro
 
 # --- Logs and scratch output ---
+.pytest_cache/
+output/
 *.log
 scratch/
 tmp/
@@ -73,14 +75,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
-
-# --- Coding Agents ---
-CLAUDE.md
-.claude/
-.agents/skills/
-.agents/roles/
-.refs/
-.adk/
 
 # --- Local / Personal Notes ---
 TODO*.md

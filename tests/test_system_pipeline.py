@@ -64,10 +64,6 @@ class TestSystemPipeline(unittest.TestCase):
 
       html_content = (out / "dashboard.html").read_text(encoding="utf-8")
       self.assertIn(
-          "https://cdn.tailwindcss.com",
-          html_content,
-      )
-      self.assertIn(
           "https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js",
           html_content,
       )
@@ -77,7 +73,7 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertIn("--text-main", html_content)
       self.assertIn("--text-muted", html_content)
       self.assertIn("--accent", html_content)
-      # Verify DESIGN.md Section 1 & 3 Typography and Theme Tokens
+      # Typography and light/dark theme tokens
       self.assertIn("DM Sans", html_content)
       self.assertIn("Instrument Serif", html_content)
       self.assertIn("IBM Plex Mono", html_content)
@@ -91,7 +87,7 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertIn("#292A30", html_content)
       self.assertIn("#ECE8E2", html_content)
       self.assertIn("#9A9895", html_content)
-      # Verify DESIGN.md Section 3 Three-Icon Theme Selector
+      # Light / Dark / System theme selector
       self.assertIn("theme-btn-light", html_content)
       self.assertIn("theme-btn-dark", html_content)
       self.assertIn("theme-btn-system", html_content)
@@ -99,7 +95,7 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertIn('data-theme-mode="dark"', html_content)
       self.assertIn('data-theme-mode="system"', html_content)
       self.assertIn("system_theme", html_content)
-      # Verify DESIGN.md Section 4 & 5 Semantic Visualization Palette & Titles
+      # Data visualization palette and view titles
       self.assertIn("#0D9488", html_content)
       self.assertIn("#D97706", html_content)
       self.assertIn("#4F46E5", html_content)
@@ -114,8 +110,6 @@ class TestSystemPipeline(unittest.TestCase):
       self.assertIn("Lineage Tree", html_content)
       self.assertIn("Data Pipeline", html_content)
       self.assertIn("Corpus Metrics", html_content)
-      self.assertIn("btn-theme-light", html_content)
-      self.assertIn("btn-theme-dark", html_content)
       self.assertIn("McLaughlin, J.", html_content)
       self.assertIn("Jupp, S.", html_content)
       self.assertIn("clinical diagnostic or medical treatment decisions", html_content)

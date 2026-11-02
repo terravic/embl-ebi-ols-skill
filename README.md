@@ -2,15 +2,15 @@
 
 ## 1. Overview
 
-`embl-ebi-ols-visualize` is an Agent Skill for querying, traversing, and visualizing biomedical ontologies hosted by the European Bioinformatics Institute (EMBL-EBI) Ontology Lookup Service (OLS4) REST API (`https://www.ebi.ac.uk/ols4/api`). The service indexes more than 250 biomedical ontologies, including the Gene Ontology (`GO`), Human Disease Ontology (`DOID`), Human Phenotype Ontology (`HP`), Mondo Disease Ontology (`MONDO`), Chemical Entities of Biological Interest (`CHEBI`), Cell Ontology (`CL`), Uber-anatomy Ontology (`UBERON`), Experimental Factor Ontology (`EFO`), and NCI Thesaurus (`NCIT`).
+`embl-ebi-ols-visualize` is an Agent Skill for querying, traversing, and visualizing biomedical ontologies hosted by the European Bioinformatics Institute (EMBL-EBI) Ontology Lookup Service (OLS4) REST API (`https://www.ebi.ac.uk/ols4/api`). The service indexes more than 280 biomedical ontologies, including the Gene Ontology (`GO`), Human Disease Ontology (`DOID`), Human Phenotype Ontology (`HP`), Mondo Disease Ontology (`MONDO`), Chemical Entities of Biological Interest (`CHEBI`), Cell Ontology (`CL`), Uber-anatomy Ontology (`UBERON`), Experimental Factor Ontology (`EFO`), and NCI Thesaurus (`NCIT`).
 
 ![EMBL-EBI OLS4 Skill Architecture and Interactive Web Dashboard](assets/skill_overview.png)
 
 ### Technical Capabilities
 Biomedical ontologies are structured as multi-relational Directed Acyclic Graphs (DAGs) with multiple inheritance. Inspecting raw nested JSON responses makes it difficult to separate direct taxonomic specialization (`subClassOf` / `is-a`) from structural or developmental relationships (`part_of`, `develops_from`, `derives_from`, `occurs_in`, `regulates`). `embl-ebi-ols-visualize` addresses this by providing:
-- Rate-limited, protocol-compliant CLI utilities enforcing the EMBL-EBI 5.0 QPS rate limit, exponential backoff retries, automatic OBO ID to canonical IRI mapping, and double URL-encoding.
-- Automated graph and hierarchical tree normalization with shortest-path-to-root tracing, input-to-output data pipeline metrics, and semantic edge classification.
-- A standalone, self-contained HTML5 interactive dashboard (`dashboard.html`) built to the specifications in `DESIGN.md`, featuring single-level bento grid organization, a three-mode theme selector (`Light`, `Dark`, and `System` with real-time OS appearance tracking), five synchronized views (`Structural Data Diagram` / `3D Network`, `Interactive Relationship Node Map` / `2D Hierarchy`, `Lineage Tree`, `Data Pipeline`, and `Corpus Metrics`), a split-pane term inspector for scoped synonyms and clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), client-side JSON loading, and live Server-Sent Events (SSE) incremental updates.
+- Rate-limited CLI utilities that enforce the EMBL-EBI 5.0 requests-per-second limit, exponential backoff retries, automatic OBO ID to canonical IRI mapping, and double URL-encoding.
+- Graph and hierarchical tree normalization with shortest-path-to-root tracing, input and processing summaries, and relation-type classification of edges.
+- A standalone, self-contained HTML5 interactive dashboard (`dashboard.html`) built to the specifications in `DESIGN.md`, with a single-level grid layout, a three-mode theme selector (`Light`, `Dark`, and `System` with real-time OS appearance tracking), five synchronized views (`Structural Data Diagram` / `3D Network`, `Interactive Relationship Node Map` / `2D Hierarchy`, `Lineage Tree`, `Data Pipeline`, and `Corpus Metrics`), a split-pane term inspector for scoped synonyms and clinical cross-references (MeSH, ICD-10, OMIM, UMLS, MedDRA), client-side JSON loading, and live Server-Sent Events (SSE) incremental updates.
 - Live data only: every pipeline run queries the OLS4 API, and the dashboard shows only values present in the fetched (or uploaded) data. Missing values are left blank rather than filled with placeholders, and lineage edges come from OLS4 (`/graph` plus each ancestor's `/parents` and `/hierarchicalParents`), never inferred.
 - Three bundled example terms (`nucleus`, `diabetes mellitus`, `apoptotic process`) in `sample_data/`, listed under **Examples** in the dashboard's dataset selector so there is always something to explore. Examples are labelled and isolated: they never contribute data to a live run or an uploaded file.
 
@@ -32,7 +32,6 @@ All paths in this repository are organized relative to the project root director
 |-- SKILL_LICENSES.md
 |-- assets/
 |   |-- dashboard_schema.json
-|   |-- dashboard_template.html
 |   |-- skill_overview.png
 |   `-- skill_overview.svg
 |-- dashboard.html
@@ -67,7 +66,6 @@ All paths in this repository are organized relative to the project root director
 |       |-- SKILL.md
 |       |-- assets/
 |       |   |-- dashboard_schema.json
-|       |   |-- dashboard_template.html
 |       |   |-- skill_overview.png
 |       |   `-- skill_overview.svg
 |       |-- dashboard.html
@@ -281,7 +279,7 @@ Open `dashboard.html` in any web browser or preview pane to explore the results 
   - `Lineage Tree`: Click any branch node to expand or collapse child subtypes. When a term has several top-level ancestors, each one starts its own tree.
   - `Data Pipeline`: Review the exact query parameters sent to EMBL-EBI alongside the normalized nodes and classified semantic relationships.
   - `Corpus Metrics`: View bar plots of relationship types, a depth-by-relation heatmap, and ontology/repository statistics (shown only when that data was fetched with `--stats`).
-- **Zoom for More Detail**: Labels never overlap. When zoomed out, only the most important labels are shown (your term, a selected node, search matches, the root path, ontology roots); others hide until there is room. Zooming in reveals more labels and adds detail: the OBO ID and relation type, then a short definition. In the 2D Hierarchy, relation names on edges also appear when zoomed in.
+- **Zoom for More Detail**: Labels are placed so they do not overlap. When zoomed out, only the most important labels are shown (your term, a selected node, search matches, the root path, ontology roots); others hide until there is room. Zooming in reveals more labels and adds detail: the OBO ID and relation type, then a short definition. In the 2D Hierarchy, relation names on edges also appear when zoomed in.
 - **Lineage Tree Starts on the Lineage**: The tree opens with the path from the ontology root to your term expanded, plus the term's own children. Other branches start collapsed and show how many children they hide, e.g. `(+3)`. Click a node to expand or collapse it.
 - **Inspect Term Details**: Click any node in the diagram to display its definition, synonyms, parent/child links, and clinical database cross-references in the right-hand sidebar.
 - **Highlight the Main Lineage**: Click `Root Path` in the top bar to highlight the shortest chain of parent terms leading from the ontology root to your selected term.
